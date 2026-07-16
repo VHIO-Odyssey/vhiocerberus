@@ -1,3 +1,11 @@
+# Function to connect to the VHIO database using ODBC
+# usert: Username for the database connection
+# password: Password for the database connection
+# database_name: Name of the database to connect to (e.g., "OncoClinical",
+# "OncoPharma", "Prescreening_NEW")
+# connection_name: Name to assign to the connection object in the global
+# environment
+# silent_success: If TRUE, suppresses success messages; default is FALSE
 connect_to_vhio_database <- function(
   user,
   password,
@@ -75,4 +83,20 @@ connect_to_vhio_database <- function(
     connection,
     envir = rlang::global_env()
   )
+}
+
+# min and max functions that return NA if all values are NA.
+safe_min <- function(x) {
+  if (all(is.na(x))) {
+    x[1]
+  } else {
+    min(x, na.rm = TRUE)
+  }
+}
+safe_max <- function(x) {
+  if (all(is.na(x))) {
+    x[1]
+  } else {
+    max(x, na.rm = TRUE)
+  }
 }
