@@ -3,22 +3,11 @@
 # password: Password for the database connection
 # database_name: Name of the database to connect to (e.g., "OncoClinical",
 # "OncoPharma", "Prescreening_NEW")
-# connection_name: Name to assign to the connection object in the global
-# environment
-# silent_success: If TRUE, suppresses success messages; default is FALSE
 connect_to_vhio_database <- function(
   user,
   password,
-  database_name,
-  connection_name,
-  silent_success = FALSE
+  database_name
 ) {
-  rlang::arg_match(
-    database_name,
-    values = c("OncoClinical", "OncoPharma", "Prescreening_NEW"),
-    multiple = FALSE
-  )
-
   vhio_reach <- tryCatch(
     {
       # Try to establish a socket connection to the Server
@@ -73,16 +62,7 @@ connect_to_vhio_database <- function(
     ))
   }
 
-  if (!silent_success) {
-    cli::cli_alert_success("Successfully connected to {.val {database_name}}.")
-    cli::cli_alert_info("Connection name: {.val {connection_name}}.")
-  }
-
-  assign(
-    connection_name,
-    connection,
-    envir = rlang::global_env()
-  )
+  connection
 }
 
 # min and max functions that return NA if all values are NA.

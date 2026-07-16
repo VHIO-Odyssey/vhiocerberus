@@ -1,2 +1,5 @@
 .Rproj.user
 sandbox/
+
+/.quarto/
+**/*.quarto_ipynb
