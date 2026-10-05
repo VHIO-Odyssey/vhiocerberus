@@ -3,3 +3,4 @@ sandbox/
 
 /.quarto/
 **/*.quarto_ipynb
+AGENTS.md
