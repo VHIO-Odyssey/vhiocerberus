@@ -61,6 +61,11 @@ report_oncoclinical_verifications <- function(
       "n_issues"
     )
 
+  issue_verif_ids <-
+    oncoclinical_verifications |>
+    dplyr::filter(.data$n_issues > 0) |>
+    dplyr::pull("verif_id")
+
   sheets <- c(
     list(
       project_info = project_info,
@@ -74,6 +79,10 @@ report_oncoclinical_verifications <- function(
 
   # Excel sheet names must be <= 31 characters and unique
   names(sheets) <- make.unique(substr(names(sheets), 1, 31))
+
+  summary_sheet_name <- names(sheets)[2]
+  # Map each verif_id to its (possibly truncated) sheet name
+  sheet_name_map <- stats::setNames(names(sheets)[-(1:2)], issue_verif_ids)
 
   workbook <- openxlsx::createWorkbook()
   header_style <- openxlsx::createStyle(
@@ -92,6 +101,58 @@ report_oncoclinical_verifications <- function(
       widths = "auto"
     )
     openxlsx::freezePane(workbook, sheet_name, firstRow = TRUE)
+  }
+
+  hyperlink_style <- openxlsx::createStyle(
+    fontColour = "#0563C1",
+    textDecoration = "underline"
+  )
+
+  # In the summary, link each n_issues > 0 to its verification sheet
+  linked_rows <- which(verifications_summary$n_issues > 0)
+  for (i in linked_rows) {
+    target_sheet <- sheet_name_map[[verifications_summary$verif_id[i]]]
+    openxlsx::writeFormula(
+      workbook,
+      summary_sheet_name,
+      x = sprintf(
+        'HYPERLINK("#\'%s\'!A1","%s")',
+        target_sheet,
+        verifications_summary$n_issues[i]
+      ),
+      startCol = which(names(verifications_summary) == "n_issues"),
+      startRow = i + 1
+    )
+    openxlsx::addStyle(
+      workbook,
+      summary_sheet_name,
+      hyperlink_style,
+      rows = i + 1,
+      cols = which(names(verifications_summary) == "n_issues")
+    )
+  }
+
+  # Below each verification table, add a link back to the summary
+  for (verif_id in issue_verif_ids) {
+    sheet_name <- sheet_name_map[[verif_id]]
+    back_row <- nrow(sheets[[sheet_name]]) + 3
+    openxlsx::writeFormula(
+      workbook,
+      sheet_name,
+      x = sprintf(
+        'HYPERLINK("#\'%s\'!A1","Back to summary")',
+        summary_sheet_name
+      ),
+      startCol = 1,
+      startRow = back_row
+    )
+    openxlsx::addStyle(
+      workbook,
+      sheet_name,
+      hyperlink_style,
+      rows = back_row,
+      cols = 1
+    )
   }
 
   openxlsx::saveWorkbook(workbook, path, overwrite = TRUE)
