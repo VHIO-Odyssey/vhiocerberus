@@ -1,2 +1,3 @@
 ﻿verif_id;type;verification;details;breast;crc;ge;larc_net;prostate;sarcomas;uitm;upgi
 ocv_pl1;plausibility;pd_date is before any advanced disease treatment;;0;1;0;0;0;0;0;0
+ocv_pl2;plausibility;ttm_startdate is before or equal ttm_enddate;;1;1;1;1;1;1;1;1

@@ -141,6 +141,8 @@ select_tbl <-
     } else {
       result <- result_v0
     }
+
+    result
   }
 
 
@@ -160,12 +162,14 @@ filter_issues <- function(verified_data, issue_text) {
     ) |>
     dplyr::select(
       "dem_sap",
-      "project",
       "event_arm",
       tidyselect::all_of(id_cols),
       "issue"
     ) |>
     dplyr::select(
       -dplyr::where(~ all(. == 0))
+    ) |>
+    dplyr::mutate(
+      dem_sap = as.character(.data$dem_sap)
     )
 }

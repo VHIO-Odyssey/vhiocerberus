@@ -45,3 +45,26 @@ ocv_pl1 <- function(project, connection) {
       " {ttm_met_line_num}L start ({ttm_startdate}) is before pd_date ({pd_date})"
     )
 }
+
+ocv_pl2 <- function(project, connection) {
+  print("Running ocv_pl2 verification")
+
+  select_tbl(
+    "antineoplasic_therapy",
+    "ttm_startdate",
+    "ttm_enddate",
+    .connection = connection
+  ) |>
+    dplyr::filter(
+      .data$project == .env$project,
+      !is.na(.data$ttm_startdate),
+      !is.na(.data$ttm_enddate)
+    ) |>
+    dplyr::collect() |>
+    dplyr::mutate(
+      .ok = .data$ttm_startdate <= .data$ttm_enddate
+    ) |>
+    filter_issues(
+      " ttm_stardate ({ttm_startdate}) is after ttm_enddate ({ttm_enddate})"
+    )
+}

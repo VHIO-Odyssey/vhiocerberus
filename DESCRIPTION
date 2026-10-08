@@ -14,10 +14,14 @@ Imports:
     DBI,
     dplyr,
     glue,
+    here,
     lubridate,
     odbc,
+    openxlsx,
     purrr,
     rlang,
+    stringr,
+    tibble,
     tidyselect
 Config/roxygen2/version: 8.1.0
 Depends:
