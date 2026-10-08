@@ -1,2 +1,2 @@
-﻿verif_id;verification;details;Breast;CRC;Gastroesophageal;Gyn;LARC/NET;Prostate;UITM;Upper GI
-oncoclinical_1;pd_date es anterior a cualquier linea de tratamiento;;0;1;0;0;0;0;0;0
+﻿verif_id;type;verification;details;breast;crc;ge;larc_net;prostate;sarcomas;uitm;upgi
+ocv_pl1;plausibility;pd_date is before any advanced disease treatment;;0;1;0;0;0;0;0;0
