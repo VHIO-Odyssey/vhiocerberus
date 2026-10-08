@@ -2,8 +2,6 @@
 # named as ocv_pl<number>.
 
 ocv_pl1 <- function(project, connection) {
-  cat("Running ocv_pl1 verification")
-
   first_pd <-
     select_tbl("first_progression", "pd_date", .connection = connection) |>
     dplyr::filter(
@@ -47,8 +45,6 @@ ocv_pl1 <- function(project, connection) {
 }
 
 ocv_pl2 <- function(project, connection) {
-  cat("Running ocv_pl2 verification")
-
   select_tbl(
     "antineoplasic_therapy",
     "ttm_startdate",
@@ -70,8 +66,6 @@ ocv_pl2 <- function(project, connection) {
 }
 
 ocv_pl3 <- function(project, connection) {
-  cat("Running ocv_pl3 verification")
-
   ttms <-
     select_tbl(
       "antineoplasic_therapy",

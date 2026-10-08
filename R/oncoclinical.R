@@ -9,11 +9,32 @@ verify_oncoclinical_data <- function(user, password, project) {
     dplyr::mutate(
       issues = purrr::map(
         .data$verif_id,
-        ~ do.call(., list(project = project, connection = connection))
+        \(verif_id) {
+          cli::cli_inform("Running {.val {verif_id}} verification...")
+
+          result <- try(
+            do.call(verif_id, list(project = project, connection = connection)),
+            silent = TRUE
+          )
+
+          if (inherits(result, "try-error")) {
+            cli::cli_alert_danger(
+              "{.val {verif_id}} failed: {conditionMessage(attr(result, 'condition'))}"
+            )
+            return(NULL)
+          }
+
+          cli::cli_alert_success("{.val {verif_id}} verification completed")
+          result
+        }
       )
     ) |>
     dplyr::mutate(
-      n_issues = purrr::map_int(.data$issues, nrow),
+      # NULL means the verification failed to run
+      n_issues = purrr::map_int(
+        .data$issues,
+        \(x) if (is.null(x)) NA_integer_ else nrow(x)
+      ),
       .before = "issues"
     )
 
@@ -63,7 +84,7 @@ report_oncoclinical_verifications <- function(
 
   issue_verif_ids <-
     oncoclinical_verifications |>
-    dplyr::filter(.data$n_issues > 0) |>
+    dplyr::filter(!is.na(.data$n_issues), .data$n_issues > 0) |>
     dplyr::pull("verif_id")
 
   sheets <- c(
@@ -109,7 +130,9 @@ report_oncoclinical_verifications <- function(
   )
 
   # In the summary, link each n_issues > 0 to its verification sheet
-  linked_rows <- which(verifications_summary$n_issues > 0)
+  linked_rows <- which(
+    !is.na(verifications_summary$n_issues) & verifications_summary$n_issues > 0
+  )
   for (i in linked_rows) {
     target_sheet <- sheet_name_map[[verifications_summary$verif_id[i]]]
     openxlsx::writeFormula(
