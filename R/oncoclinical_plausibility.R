@@ -113,3 +113,68 @@ ocv_pl3 <- function(project, connection) {
   dplyr::bind_rows(ocv_pl3_a, ocv_pl3_b) |>
     dplyr::arrange(.data$dem_sap)
 }
+
+#wip ocv_pl4
+ocv_pl4 <- function(project, connection) {
+  select_tbl(
+    "antineoplasic_therapy",
+    "ttm_met_line_num",
+    "ttm_setting",
+    "ttm_ad_int",
+    "ttm_startdate",
+    .connection = connection
+  ) |>
+    dplyr::filter(
+      .data$project == .env$project
+    ) |>
+    dplyr::collect() |>
+    dplyr::mutate(
+      ttm_met_line_num2 = dplyr::if_else(
+        stringr::str_detect(.data$ttm_met_line_num, "^\\d+$"),
+        as.numeric(.data$ttm_met_line_num) |> suppressWarnings(),
+        NA_real_
+      ),
+      num_order = dplyr::case_when(
+        !is.na(.data$ttm_met_line_num2) ~ as.numeric(.data$ttm_met_line_num2),
+        .data$ttm_setting == "Neoadjuvant" ~ -1,
+        .data$ttm_setting == "Adjuvant" &
+          .data$ttm_ad_int == "After primary tumor surgery" ~ 0,
+        .default = NA
+      ),
+      setting_label = dplyr::case_when(
+        .data$num_order == -1 ~ "Neoadjuvant",
+        .data$num_order == 0 ~ "Adjuvant",
+        !is.na(.data$ttm_met_line_num) ~ stringr::str_c(
+          .data$ttm_met_line_num,
+          "L"
+        ),
+        .default = NA_character_
+      )
+    ) |>
+    dplyr::filter_out(
+      is.na(.data$num_order) | is.na(.data$ttm_startdate)
+    ) |>
+    dplyr::slice_min(
+      .data$ttm_startdate,
+      by = c("dem_sap", "event_arm", "num_order"),
+    ) |>
+    dplyr::arrange(.data$dem_sap, .data$num_order) |>
+    dplyr::mutate(
+      next_startdate = dplyr::lead(.data$ttm_startdate),
+      next_label = dplyr::lead(.data$setting_label),
+      next_instance = dplyr::lead(.data$repeating_instance),
+      .by = c("dem_sap", "event_arm")
+    ) |>
+    dplyr::mutate(
+      repeating_instance = stringr::str_c(
+        .data$repeating_instance,
+        .data$next_instance,
+        sep = ", "
+      ),
+      .ok = is.na(.data$next_startdate) |
+        .data$ttm_startdate <= .data$next_startdate
+    ) |>
+    filter_issues(
+      "{setting_label}  start ({ttm_startdate}) is after (or equal to) {next_label} start({next_startdate})"
+    )
+}

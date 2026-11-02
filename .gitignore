@@ -1,6 +1,6 @@
 .Rproj.user
 sandbox/
-
+*.xlsx
 /.quarto/
 **/*.quarto_ipynb
 AGENTS.md
