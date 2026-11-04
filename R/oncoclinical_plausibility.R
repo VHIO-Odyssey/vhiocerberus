@@ -61,7 +61,7 @@ ocv_pl2 <- function(project, connection) {
       .ok = .data$ttm_startdate <= .data$ttm_enddate
     ) |>
     filter_issues(
-      "ttm_stardate ({ttm_startdate}) is after ttm_enddate ({ttm_enddate})"
+      "ttm_startdate ({ttm_startdate}) is after ttm_enddate ({ttm_enddate})"
     )
 }
 
@@ -84,11 +84,14 @@ ocv_pl3 <- function(project, connection) {
     dplyr::filter_out(is.na(.data$ttm_startdate)) |>
     dplyr::summarise(
       n_startdate = dplyr::n(),
-      repeating_instance = stringr::str_c(repeating_instance, collapse = ", "),
+      repeating_instance = stringr::str_c(
+        .data$repeating_instance,
+        collapse = ", "
+      ),
       .by = c("dem_sap", "project", "event_arm", "form", "ttm_startdate")
     ) |>
     dplyr::mutate(
-      .ok = n_startdate == 1
+      .ok = .data$n_startdate == 1
     ) |>
     filter_issues(
       "Instances {repeating_instance} have the same ttm_startdate ({ttm_startdate})"
@@ -100,11 +103,14 @@ ocv_pl3 <- function(project, connection) {
     dplyr::filter_out(is.na(.data$ttm_enddate)) |>
     dplyr::summarise(
       n_enddate = dplyr::n(),
-      repeating_instance = stringr::str_c(repeating_instance, collapse = ", "),
+      repeating_instance = stringr::str_c(
+        .data$repeating_instance,
+        collapse = ", "
+      ),
       .by = c("dem_sap", "project", "event_arm", "form", "ttm_enddate")
     ) |>
     dplyr::mutate(
-      .ok = n_enddate == 1
+      .ok = .data$n_enddate == 1
     ) |>
     filter_issues(
       "Instances {repeating_instance} have the same ttm_enddate ({ttm_enddate})"
@@ -120,17 +126,17 @@ ocv_pl4 <- function(project, connection) {
 
   ttm_and_next_ttm <-
     ordered_ttm |>
-    dplyr::filter_out(is.na(ttm_startdate)) |>
+    dplyr::filter_out(is.na(.data$ttm_startdate)) |>
     dplyr::mutate(
-      next_startdate = dplyr::lead(ttm_startdate),
-      next_instance = dplyr::lead(repeating_instance),
-      next_setting = dplyr::lead(setting_label),
+      next_startdate = dplyr::lead(.data$ttm_startdate),
+      next_instance = dplyr::lead(.data$repeating_instance),
+      next_setting = dplyr::lead(.data$setting_label),
       .by = c("dem_sap", "event_arm")
     ) |>
     dplyr::mutate(
       repeating_instance = stringr::str_c(
-        repeating_instance,
-        next_instance,
+        .data$repeating_instance,
+        .data$next_instance,
         sep = ", "
       )
     )
@@ -138,7 +144,8 @@ ocv_pl4 <- function(project, connection) {
   ocv_pl4_a <-
     ttm_and_next_ttm |>
     dplyr::mutate(
-      .ok = ttm_startdate <= next_startdate | is.na(next_startdate)
+      .ok = .data$ttm_startdate <= .data$next_startdate |
+        is.na(.data$next_startdate)
     ) |>
     filter_issues(
       "{setting_label} ttm_stardate ({ttm_startdate}) is after {next_setting} ttm_startdate ({next_startdate})"
@@ -146,7 +153,8 @@ ocv_pl4 <- function(project, connection) {
   ocv_pl4_b <-
     ttm_and_next_ttm |>
     dplyr::mutate(
-      .ok = ttm_startdate != next_startdate | is.na(next_startdate)
+      .ok = .data$ttm_startdate != .data$next_startdate |
+        is.na(.data$next_startdate)
     ) |>
     filter_issues(
       "{setting_label} ttm_stardate ({ttm_startdate}) is equal to {next_setting} ttm_startdate ({next_startdate})"

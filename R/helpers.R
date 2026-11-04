@@ -264,7 +264,7 @@ extract_ordered_treatment <- function(project, connection) {
 
   ttm_ordered_v0 <-
     ttm_raw |>
-    dplyr::filter_out(ttm_ad_int == "After M1 surgery") |>
+    dplyr::filter_out(.data$ttm_ad_int == "After M1 surgery") |>
     dplyr::mutate(
       # versión numérica de ttm_met_line_num2
       ttm_met_line_num2 = dplyr::if_else(
@@ -308,7 +308,7 @@ extract_ordered_treatment <- function(project, connection) {
 
   ttm_adj_m1 <-
     ttm_raw |>
-    dplyr::filter(ttm_ad_int == "After M1 surgery") |>
+    dplyr::filter(.data$ttm_ad_int == "After M1 surgery") |>
     dplyr::filter_out(is.na(.data$reference_date)) |>
     dplyr::mutate(
       setting_label = "Adjuvant Metastatic"
@@ -385,7 +385,29 @@ extract_ordered_treatment <- function(project, connection) {
         order = dplyr::row_number(),
         .by = c("dem_sap", "event_arm"),
         .after = "repeating_instance"
-      )
+      ) |>
+      dplyr::group_by(.data$project, .data$dem_sap, .data$event_arm) |>
+      dplyr::mutate(
+        run_id = data.table::rleid(.data$setting_label),
+        n_adjmet_runs = dplyr::n_distinct(.data$run_id[
+          .data$setting_label == "Adjuvant Metastatic"
+        ]),
+        adjmet_run = dplyr::if_else(
+          .data$setting_label == "Adjuvant Metastatic",
+          match(
+            .data$run_id,
+            unique(.data$run_id[.data$setting_label == "Adjuvant Metastatic"])
+          ),
+          NA_integer_
+        ),
+        setting_label = dplyr::if_else(
+          is.na(.data$adjmet_run),
+          .data$setting_label,
+          paste(.data$setting_label, .data$adjmet_run)
+        )
+      ) |>
+      dplyr::select(-"run_id", -"n_adjmet_runs", -"adjmet_run") |>
+      dplyr::ungroup()
   } else {
     ttm_ordered <- ttm_ordered_v0 |>
       dplyr::mutate(
