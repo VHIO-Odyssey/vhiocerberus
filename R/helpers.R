@@ -167,6 +167,7 @@ filter_issues <- function(verified_data, issue_text) {
       "issue"
     ) |>
     dplyr::select(
+      # Esto elimina la columna de eventos e instancias si todas son 0
       -dplyr::where(~ all(. == 0))
     ) |>
     dplyr::mutate(
