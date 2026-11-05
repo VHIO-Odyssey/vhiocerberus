@@ -420,51 +420,51 @@ extract_ordered_treatment <- function(project, connection) {
   ttm_ordered
 }
 
-#' @title Add the Start of the Next Treatment Setting to Each Treatment
+#' @title Add the Next Present Date After the Current Treatment Setting
 #' @description
 #'   Annotates every treatment record returned by
-#'   [extract_ordered_treatment()] with information about the first record of
-#'   the next treatment setting in the patient's sequence: its date, its
-#'   `order` and its `setting_label`. It is useful to bound the time window of
-#'   a setting by the moment the following one begins.
+#'   [extract_ordered_treatment()] with the first record, in a later
+#'   treatment setting of the same patient and cancer, that has a non-missing
+#'   `date_var`: its date, its `order` and its `setting_label`. It is useful to
+#'   bound the time window of a setting by the moment a following one begins.
 #'
-#'   Within each patient and cancer (`dem_sap` and `event_arm`), consecutive records sharing the same
-#'   `setting_label` are grouped into a run (the labels `"Adjuvant Metastatic
-#'   1"`, `"Adjuvant Metastatic 2"`, ... produced by
-#'   [extract_ordered_treatment()] keep separate adjuvant-to-M1 runs apart).
-#'   The first record of each run (lowest `order`) is taken as the start of
-#'   that setting, and its values are assigned to all records of the
-#'   immediately preceding run. Records in the last run of a patient and cancer have no
-#'   next setting and receive `NA`.
+#'   Within each patient and cancer (`dem_sap` and `event_arm`), consecutive
+#'   records sharing the same `setting_label` are grouped into a run (the
+#'   labels `"Adjuvant Metastatic 1"`, `"Adjuvant Metastatic 2"`, ... produced
+#'   by [extract_ordered_treatment()] keep separate adjuvant-to-M1 runs
+#'   apart). For each run, the next record is the one with the lowest `order`
+#'   among the records of later runs whose `date_var` is not missing. The same
+#'   next record is assigned to all records of the run. Records with no such
+#'   later record (e.g. those in the last run) receive `NA`.
 #'
 #' @param extract_ordered_treatment_data A tibble as returned by
 #'   [extract_ordered_treatment()]. It must contain the columns `dem_sap`,
-#'   `event_arm`, `setting_label`, `order` and the column named by `date_var`. Only these
-#'   columns are used; any other column is preserved untouched.
+#'   `event_arm`, `setting_label`, `order` and the column named by
+#'   `date_var`. Only these columns are used; any other column is preserved
+#'   untouched.
 #' @param date_var A single string with the name of a date column of
-#'   `extract_ordered_treatment_data` taken from the first record of the next
-#'   setting (typically one of `"reference_date"`, `"ttm_startdate"`,
+#'   `extract_ordered_treatment_data` from which the next present date is
+#'   taken (typically one of `"reference_date"`, `"ttm_startdate"`,
 #'   `"ttm_enddate"` or `"ttm_pddate"`, all produced by
 #'   [extract_ordered_treatment()]).
 #'
 #' @return An ungrouped tibble with all the rows and columns of
 #'   `extract_ordered_treatment_data` plus three new columns, which are `NA`
-#'   for records belonging to the last setting of their `dem_sap` and `event_arm`:
+#'   when there is no later record with a present `date_var` in the same
+#'   `dem_sap` and `event_arm`:
 #'   \describe{
-#'     \item{next_<date_var>}{Value of `date_var` in the first record of the
-#'       next setting (e.g. `next_reference_date` when
-#'       `date_var = "reference_date"`). It is `NA` if that record has no
-#'       date.}
-#'     \item{next_instance}{Value of `order` of the first record of the next
-#'       setting.}
-#'     \item{next_setting}{`setting_label` of the next setting.}
+#'     \item{next_<date_var>}{Value of `date_var` in the next record with a
+#'       present date in a later setting (e.g. `next_reference_date` when
+#'       `date_var = "reference_date"`).}
+#'     \item{next_instance}{Value of `order` of that record.}
+#'     \item{next_setting}{`setting_label` of that record.}
 #'   }
 #'
 #' @details
-#'   The next date is taken from the first record of the next setting even if
-#'   that record has a missing `date_var`; later records of the same setting
-#'   with a present date are not used (work in progress, see the `wip` note in
-#'   the code).
+#'   Settings whose records all have a missing `date_var` are skipped, so
+#'   `next_setting` is not necessarily the setting immediately following the
+#'   current one. Within the next setting, records without a date are also
+#'   skipped, so `next_instance` may not be the first record of that setting.
 #'
 #'   Runs are computed within each `dem_sap` and `event_arm` combination,
 #'   consistent with how `order` is numbered, so the sequences of different
@@ -480,28 +480,40 @@ add_next_setting_date <- function(extract_ordered_treatment_data, date_var) {
     dplyr::mutate(
       run = dplyr::consecutive_id(.data$setting_label),
       .by = c("dem_sap", "event_arm")
-    ) |>
-    dplyr::ungroup()
-
-  #wip hay que sacar la siguiente fecha PRESENTE
-  next_run <-
-    data_run |>
-    dplyr::slice_min(
-      .data$order,
-      by = c("dem_sap", "event_arm", "run"),
-      n = 1,
-      with_ties = FALSE
-    ) |>
-    dplyr::transmute(
-      .data$dem_sap,
-      .data$event_arm,
-      run = .data$run - 1L,
-      "next_{date_var}" := .data[[date_var]],
-      next_instance = .data$order,
-      next_setting = .data$setting_label
     )
 
+  # Registros con fecha presente, candidatos a "siguiente"
+  present <-
+    data_run |>
+    dplyr::filter_out(is.na(.data[[date_var]])) |>
+    dplyr::mutate(
+      .data$dem_sap,
+      .data$event_arm,
+      next_run = .data$run,
+      "next_{date_var}" := .data[[date_var]],
+      next_instance = .data$order,
+      next_setting = .data$setting_label,
+      .keep = "none"
+    )
+
+  # Para cada run, el primer registro con fecha presente en un run posterior
+  next_by_run <-
+    data_run |>
+    dplyr::distinct(.data$dem_sap, .data$event_arm, .data$run) |>
+    dplyr::left_join(
+      present,
+      by = dplyr::join_by("dem_sap", "event_arm", "run" < "next_run")
+    ) |>
+    dplyr::slice_min(
+      .data$next_instance,
+      by = c("dem_sap", "event_arm", "run"),
+      n = 1,
+      with_ties = FALSE,
+      na_rm = FALSE
+    ) |>
+    dplyr::select(-"next_run")
+
   data_run |>
-    dplyr::left_join(next_run, by = c("dem_sap", "event_arm", "run")) |>
+    dplyr::left_join(next_by_run, by = c("dem_sap", "event_arm", "run")) |>
     dplyr::select(-"run")
 }
