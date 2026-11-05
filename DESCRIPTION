@@ -11,9 +11,8 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
     cli,
-    data.table,
     DBI,
-    dplyr,
+    dplyr (>= 1.1.0),
     glue,
     here,
     lubridate,
