@@ -284,6 +284,12 @@ extract_ordered_treatment <- function(project, connection) {
           .data$ttm_met_line_num,
           "L"
         ),
+        !.data$ttm_setting %in%
+          c(
+            "Neoadjuvant",
+            "Adjuvant",
+            "Metastatic or Palliative"
+          ) ~ .data$ttm_setting,
         .default = NA_character_
       )
     ) |>
@@ -299,12 +305,32 @@ extract_ordered_treatment <- function(project, connection) {
       "event_arm",
       "form",
       "repeating_instance",
+      "num_order",
       "setting_label",
       "reference_date",
       "ttm_startdate",
       "ttm_enddate",
       "ttm_pddate"
     )
+
+  # settings extraños no ordenados.
+  ttm_no_ordered <-
+    ttm_ordered_v0 |>
+    dplyr::filter(
+      is.na(.data$num_order),
+      # Han de tener fecha de referencia para reubicarlos después.
+      !is.na(.data$reference_date),
+      # Han de tener setting_label (si no lo tienen es que ttm_setting estaba
+      # vacío o es un metastatico sin linea, ambos casos son un problema de
+      # completeness)
+      !is.na(.data$setting_label)
+    ) |>
+    dplyr::select(-"num_order")
+
+  ttm_ordered_v1 <-
+    ttm_ordered_v0 |>
+    dplyr::filter_out(is.na(.data$num_order)) |>
+    dplyr::select(-"num_order")
 
   ttm_adj_m1 <-
     ttm_raw |>
@@ -331,12 +357,12 @@ extract_ordered_treatment <- function(project, connection) {
     )
 
   if (nrow(ttm_adj_m1) > 0) {
-    # Insertar ttm_adj_m1 en ttm_ordered_v0 sin alterar el orden de v0:
+    # Insertar ttm_adj_m1 en ttm_ordered_v1 sin alterar el orden de v0:
     # cada fila de m1 se intercala dentro de su paciente y event_arm (un paciente
     # puede tener más de un cáncer), tras la última fila de v0 con reference_date
     # conocida <= la suya (o al inicio del bloque si es anterior a todas)
     v0 <-
-      ttm_ordered_v0 |>
+      ttm_ordered_v1 |>
       dplyr::mutate(.ord = dplyr::row_number())
 
     m1_pos <-
@@ -409,7 +435,7 @@ extract_ordered_treatment <- function(project, connection) {
       dplyr::select(-"run_id", -"n_adjmet_runs", -"adjmet_run") |>
       dplyr::ungroup()
   } else {
-    ttm_ordered <- ttm_ordered_v0 |>
+    ttm_ordered <- ttm_ordered_v1 |>
       dplyr::mutate(
         order = dplyr::row_number(),
         .by = c("dem_sap", "event_arm"),
