@@ -9,7 +9,8 @@ add_next_setting_date(extract_ordered_treatment_data, date_var)
 \arguments{
 \item{extract_ordered_treatment_data}{A tibble as returned by
 \code{extract_ordered_treatment()}. It must contain the columns \code{dem_sap},
-\code{event_arm}, \code{setting_label}, \code{order} and the column named by
+\code{event_arm}, \code{setting_label}, \code{order}, \code{repeating_instance} and the column
+named by
 \code{date_var}. Only these columns are used; any other column is preserved
 untouched.}
 
@@ -28,7 +29,8 @@ when there is no later record with a present \code{date_var} in the same
 \item{next_<date_var>}{Value of \code{date_var} in the next record with a
 present date in a later setting (e.g. \code{next_reference_date} when
 \code{date_var = "reference_date"}).}
-\item{next_instance}{Value of \code{order} of that record.}
+\item{next_instance}{Value of \code{repeating_instance} (the instance
+number in the database) of that record.}
 \item{next_setting}{\code{setting_label} of that record.}
 }
 }
@@ -36,7 +38,8 @@ present date in a later setting (e.g. \code{next_reference_date} when
 Annotates every treatment record returned by
 \code{extract_ordered_treatment()} with the first record, in a later
 treatment setting of the same patient and cancer, that has a non-missing
-\code{date_var}: its date, its \code{order} and its \code{setting_label}. It is useful to
+\code{date_var}: its date, its \code{repeating_instance} and its \code{setting_label}. It
+is useful to
 bound the time window of a setting by the moment a following one begins.
 
 Within each patient and cancer (\code{dem_sap} and \code{event_arm}), consecutive

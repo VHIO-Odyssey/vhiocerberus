@@ -470,7 +470,8 @@ insert_by_reference_date <- function(base, to_insert) {
 #'   Annotates every treatment record returned by
 #'   `extract_ordered_treatment()` with the first record, in a later
 #'   treatment setting of the same patient and cancer, that has a non-missing
-#'   `date_var`: its date, its `order` and its `setting_label`. It is useful to
+#'   `date_var`: its date, its `repeating_instance` and its `setting_label`. It
+#'   is useful to
 #'   bound the time window of a setting by the moment a following one begins.
 #'
 #'   Within each patient and cancer (`dem_sap` and `event_arm`), consecutive
@@ -484,7 +485,8 @@ insert_by_reference_date <- function(base, to_insert) {
 #'
 #' @param extract_ordered_treatment_data A tibble as returned by
 #'   `extract_ordered_treatment()`. It must contain the columns `dem_sap`,
-#'   `event_arm`, `setting_label`, `order` and the column named by
+#'   `event_arm`, `setting_label`, `order`, `repeating_instance` and the column
+#'   named by
 #'   `date_var`. Only these columns are used; any other column is preserved
 #'   untouched.
 #' @param date_var A single string with the name of a date column of
@@ -501,7 +503,8 @@ insert_by_reference_date <- function(base, to_insert) {
 #'     \item{next_<date_var>}{Value of `date_var` in the next record with a
 #'       present date in a later setting (e.g. `next_reference_date` when
 #'       `date_var = "reference_date"`).}
-#'     \item{next_instance}{Value of `order` of that record.}
+#'     \item{next_instance}{Value of `repeating_instance` (the instance
+#'       number in the database) of that record.}
 #'     \item{next_setting}{`setting_label` of that record.}
 #'   }
 #'
@@ -536,12 +539,14 @@ add_next_setting_date <- function(extract_ordered_treatment_data, date_var) {
       .data$event_arm,
       next_run = .data$run,
       "next_{date_var}" := .data[[date_var]],
-      next_instance = .data$order,
+      next_instance = .data$repeating_instance,
+      next_order = .data$order,
       next_setting = .data$setting_label,
       .keep = "none"
     )
 
-  # Para cada run, el primer registro con fecha presente en un run posterior
+  # Para cada run, el primer registro (menor `order`) con fecha presente en un
+  # run posterior
   next_by_run <-
     data_run |>
     dplyr::distinct(.data$dem_sap, .data$event_arm, .data$run) |>
@@ -550,13 +555,13 @@ add_next_setting_date <- function(extract_ordered_treatment_data, date_var) {
       by = dplyr::join_by("dem_sap", "event_arm", "run" < "next_run")
     ) |>
     dplyr::slice_min(
-      .data$next_instance,
+      .data$next_order,
       by = c("dem_sap", "event_arm", "run"),
       n = 1,
       with_ties = FALSE,
       na_rm = FALSE
     ) |>
-    dplyr::select(-"next_run")
+    dplyr::select(-"next_run", -"next_order")
 
   data_run |>
     dplyr::left_join(next_by_run, by = c("dem_sap", "event_arm", "run")) |>

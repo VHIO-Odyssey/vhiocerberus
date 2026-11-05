@@ -135,3 +135,18 @@ test_that("records without date_var are skipped as next candidates", {
   expect_equal(out$next_setting[1], "2L")
   expect_equal(out$next_ttm_enddate[1], as.Date("2020-07-01"))
 })
+
+test_that("next_instance is the repeating_instance, not the order", {
+  # Filas en la BBDD en orden distinto al cronologico: instance != order
+  ordered <- run_extract(
+    met_row(2, "2020-06-01"), # instance 1
+    met_row(1, "2020-01-01"), # instance 2
+    m1_row("2020-03-01") # instance 3
+  )
+
+  out <- add_next_setting_date(ordered, "reference_date")
+
+  expect_equal(out$order, 1:3)
+  expect_equal(out$repeating_instance, c(2, 3, 1))
+  expect_equal(out$next_instance, c(3, 1, NA))
+})
