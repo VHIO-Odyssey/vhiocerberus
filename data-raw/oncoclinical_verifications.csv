@@ -5,3 +5,6 @@ ocv_pl3;plausibility;ttm_startdate and ttm_enddate are different across instance
 ocv_pl4;plausibility;ttm_stardate is before the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
 ocv_pl5;plausibility;ttm_enddate is before the ttm_enddate of the next setting;;1;1;1;1;1;1;1;1
 ocv_pl6;plausibility;ttm_pddate is before the ttm_pddate of the next setting;;1;1;1;1;1;1;1;1
+ocv_pl7;plausibility;ttm_enddate is before or equal to the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
+ocv_pl8;plausibility;ttm_pddate is before or equal to the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
+ocv_pl9;plausibility;ttm_pddate is after or equal to ttm_startdate;;1;1;1;1;1;1;1;1

@@ -131,3 +131,51 @@ ocv_pl5 <- function(project, connection) {
 ocv_pl6 <- function(project, connection) {
   ocv_next_setting_date_order(project, connection, "ttm_pddate")
 }
+
+ocv_pl7 <- function(project, connection) {
+  extract_ordered_treatment(project, connection) |>
+    add_next_setting_date("ttm_startdate") |>
+    dplyr::mutate(
+      repeating_instance = stringr::str_c(
+        repeating_instance,
+        next_instance,
+        sep = ", "
+      ),
+      .ok = ttm_enddate <= next_ttm_startdate |
+        is.na(ttm_enddate) |
+        is.na(next_ttm_startdate)
+    ) |>
+    filter_issues(
+      "{setting_label} ttm_enddate ({ttm_enddate}) is after {next_setting} ttm_startdate ({next_ttm_startdate})"
+    )
+}
+
+ocv_pl8 <- function(project, connection) {
+  extract_ordered_treatment(project, connection) |>
+    add_next_setting_date("ttm_startdate") |>
+    dplyr::mutate(
+      repeating_instance = stringr::str_c(
+        repeating_instance,
+        next_instance,
+        sep = ", "
+      ),
+      .ok = ttm_pddate <= next_ttm_startdate |
+        is.na(ttm_pddate) |
+        is.na(next_ttm_startdate)
+    ) |>
+    filter_issues(
+      "{setting_label} ttm_pddate ({ttm_pddate}) is after {next_setting} ttm_startdate ({next_ttm_startdate})"
+    )
+}
+
+ocv_pl9 <- function(project, connection) {
+  extract_ordered_treatment(project, connection) |>
+    dplyr::mutate(
+      .ok = ttm_pddate >= ttm_startdate |
+        is.na(ttm_pddate) |
+        is.na(ttm_startdate)
+    ) |>
+    filter_issues(
+      "{setting_label} ttm_pddate ({ttm_pddate}) is before ttm_startdate ({ttm_startdate})"
+    )
+}
