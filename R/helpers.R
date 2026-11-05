@@ -155,7 +155,8 @@ filter_issues <- function(verified_data, issue_text) {
     value = TRUE
   )
 
-  verified_data |>
+  verified_data <-
+    verified_data |>
     dplyr::filter_out(.data$.ok) |>
     dplyr::mutate(
       issue = glue::glue(issue_text)
@@ -166,12 +167,18 @@ filter_issues <- function(verified_data, issue_text) {
       tidyselect::all_of(id_cols),
       "issue"
     ) |>
+    dplyr::mutate(
+      dem_sap = as.character(.data$dem_sap)
+    )
+
+  if (nrow(verified_data) == 0) {
+    return(verified_data)
+  }
+
+  verified_data |>
     dplyr::select(
       # Esto elimina la columna de eventos e instancias si todas son 0
       -dplyr::where(~ all(. == 0))
-    ) |>
-    dplyr::mutate(
-      dem_sap = as.character(.data$dem_sap)
     )
 }
 
@@ -284,9 +291,9 @@ extract_ordered_treatment <- function(project, connection) {
         NA_real_
       ),
       num_order = dplyr::case_when(
-        !is.na(.data$ttm_met_line_num2) ~ .data$ttm_met_line_num2,
         .data$ttm_setting == "Neoadjuvant" ~ -1,
         .data$ttm_setting == "Adjuvant" ~ 0,
+        !is.na(.data$ttm_met_line_num2) ~ .data$ttm_met_line_num2,
         .default = NA
       ),
       setting_label = dplyr::case_when(

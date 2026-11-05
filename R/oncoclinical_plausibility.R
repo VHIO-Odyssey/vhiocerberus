@@ -122,43 +122,59 @@ ocv_pl3 <- function(project, connection) {
 
 #wip ocv_pl4
 ocv_pl4 <- function(project, connection) {
-  ordered_ttm <- extract_ordered_treatment(project, connection)
-
   ttm_and_next_ttm <-
-    ordered_ttm |>
-    dplyr::filter_out(is.na(.data$ttm_startdate)) |>
-    dplyr::mutate(
-      next_startdate = dplyr::lead(.data$ttm_startdate),
-      next_instance = dplyr::lead(.data$repeating_instance),
-      next_setting = dplyr::lead(.data$setting_label),
-      .by = c("dem_sap", "event_arm")
-    ) |>
-    dplyr::mutate(
-      repeating_instance = stringr::str_c(
-        .data$repeating_instance,
-        .data$next_instance,
-        sep = ", "
-      )
-    )
+    extract_ordered_treatment(project, connection) |>
+    add_next_setting_date("ttm_startdate")
 
   ocv_pl4_a <-
     ttm_and_next_ttm |>
     dplyr::mutate(
-      .ok = .data$ttm_startdate <= .data$next_startdate |
-        is.na(.data$next_startdate)
+      .ok = .data$ttm_startdate <= .data$next_ttm_startdate |
+        is.na(.data$next_ttm_startdate) |
+        is.na(.data$ttm_startdate)
     ) |>
     filter_issues(
-      "{setting_label} ttm_stardate ({ttm_startdate}) is after {next_setting} ttm_startdate ({next_startdate})"
+      "{setting_label} ttm_startdate ({ttm_startdate}) is after {next_setting} ttm_startdate ({next_ttm_startdate})"
     )
   ocv_pl4_b <-
     ttm_and_next_ttm |>
     dplyr::mutate(
-      .ok = .data$ttm_startdate != .data$next_startdate |
-        is.na(.data$next_startdate)
+      .ok = .data$ttm_startdate != .data$next_ttm_startdate |
+        is.na(.data$next_ttm_startdate) |
+        is.na(.data$ttm_startdate)
     ) |>
     filter_issues(
-      "{setting_label} ttm_stardate ({ttm_startdate}) is equal to {next_setting} ttm_startdate ({next_startdate})"
+      "{setting_label} ttm_startdate ({ttm_startdate}) is equal to {next_setting} ttm_startdate ({next_ttm_startdate})"
     )
 
   dplyr::bind_rows(ocv_pl4_a, ocv_pl4_b)
+}
+
+ocv_pl5 <- function(project, connection) {
+  ttm_and_next_ttm <-
+    extract_ordered_treatment(project, connection) |>
+    add_next_setting_date("ttm_enddate")
+
+  ocv_pl5_a <-
+    ttm_and_next_ttm |>
+    dplyr::mutate(
+      .ok = .data$ttm_enddate <= .data$next_ttm_enddate |
+        is.na(.data$next_ttm_enddate) |
+        is.na(.data$ttm_enddate)
+    ) |>
+    filter_issues(
+      "{setting_label} ttm_enddate ({ttm_enddate}) is after {next_setting} ttm_enddate ({next_ttm_enddate})"
+    )
+  ocv_pl5_b <-
+    ttm_and_next_ttm |>
+    dplyr::mutate(
+      .ok = .data$ttm_enddate != .data$next_ttm_enddate |
+        is.na(.data$next_ttm_enddate) |
+        is.na(.data$ttm_enddate)
+    ) |>
+    filter_issues(
+      "{setting_label} ttm_enddate ({ttm_enddate}) is equal to {next_setting} ttm_enddate ({next_ttm_enddate})"
+    )
+
+  dplyr::bind_rows(ocv_pl5_a, ocv_pl5_b)
 }
