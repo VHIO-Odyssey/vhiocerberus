@@ -25,7 +25,14 @@ verify_oncoclinical_data <- function(user, password, project) {
           }
 
           cli::cli_alert_success("{.val {verif_id}} verification completed")
-          result
+          result |>
+            dplyr::mutate(
+              dem_sap = as.character(.data$dem_sap)
+            ) |>
+            dplyr::select(
+              # Esto elimina la columna de eventos e instancias si todas son 0
+              -dplyr::where(~ all(. == 0))
+            )
         }
       )
     ) |>

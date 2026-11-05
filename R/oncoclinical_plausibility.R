@@ -120,7 +120,6 @@ ocv_pl3 <- function(project, connection) {
     dplyr::arrange(.data$dem_sap)
 }
 
-#wip ocv_pl4
 ocv_pl4 <- function(project, connection) {
   ttm_and_next_ttm <-
     extract_ordered_treatment(project, connection) |>

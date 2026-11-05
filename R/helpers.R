@@ -155,8 +155,7 @@ filter_issues <- function(verified_data, issue_text) {
     value = TRUE
   )
 
-  verified_data <-
-    verified_data |>
+  verified_data |>
     dplyr::filter_out(.data$.ok) |>
     dplyr::mutate(
       issue = glue::glue(issue_text)
@@ -166,19 +165,6 @@ filter_issues <- function(verified_data, issue_text) {
       "event_arm",
       tidyselect::all_of(id_cols),
       "issue"
-    ) |>
-    dplyr::mutate(
-      dem_sap = as.character(.data$dem_sap)
-    )
-
-  if (nrow(verified_data) == 0) {
-    return(verified_data)
-  }
-
-  verified_data |>
-    dplyr::select(
-      # Esto elimina la columna de eventos e instancias si todas son 0
-      -dplyr::where(~ all(. == 0))
     )
 }
 
