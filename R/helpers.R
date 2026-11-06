@@ -145,6 +145,48 @@ select_tbl <-
     result
   }
 
+oncoclinical_select <- function(
+  ...,
+  .project,
+  .patients,
+  .connection
+) {
+  vars_metadata <-
+    DBI::dbGetQuery(
+      .connection,
+      "
+  SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE, ORDINAL_POSITION
+  FROM INFORMATION_SCHEMA.COLUMNS
+  ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION"
+    ) |>
+    dplyr::rename_with(stringr::str_to_lower) |>
+    dplyr::filter(.data$column_name %in% c(...)) |>
+    dplyr::select("table_name", "column_name", "data_type") |>
+    tidyr::nest(variables = c("column_name", "data_type"))
+
+  selection <-
+    purrr::pmap(
+      vars_metadata,
+      function(table_name, variables, project, patients) {
+        select_tbl(
+          table_name,
+          variables$column_name,
+          .connection = .connection
+        ) |>
+          dplyr::filter(
+            .data$dem_sap %in% .patients,
+            .data$project == .project
+          ) |>
+          dplyr::collect()
+      },
+      .project,
+      .patients
+    )
+  if (length(selection) == 1) {
+    return(selection[[1]])
+  }
+  selection
+}
 
 filter_issues <- function(verified_data, issue_text) {
   # Columnas form*/repeating_instance*, en el orden en que vengan
