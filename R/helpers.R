@@ -81,10 +81,10 @@ safe_max <- function(x) {
   }
 }
 
-#' @title Select Columns from a Database Form Table
+#' @title Select Columns from an OncoClinical Form Table
 #' @description
-#'   Retrieves a form table from the VHIO database and keeps a standardized
-#'   set of identifier columns (`dem_sap`, `project`, `event_arm` and, when
+#'   Retrieves a form table from the OncoClinical database and keeps a
+#'   standardized set of identifier columns (`dem_sap`, `project`, `event_arm` and, when
 #'   available, `repeating_instance`) alongside the variables requested in
 #'   `...`. A `form` column recording the source table name is added after
 #'   `event_arm`.
@@ -92,12 +92,18 @@ safe_max <- function(x) {
 #'   not a repeating instrument), a `repeating_instance` column set to `0` is
 #'   added after `form`.
 #'
-#' @param tbl A single string with the name of the database table (form) to
+#'   This function only works with the OncoClinical database: it assumes the
+#'   OncoClinical table structure (`dem_sap`, `project`, `event_arm` and
+#'   `repeating_instance` identifier columns). It is not intended for other
+#'   VHIO databases such as OncoPharma or Prescreening_NEW.
+#'
+#' @param tbl A single string with the name of the OncoClinical table (form) to
 #'   query.
 #' @param ... Column names or tidy-select expressions with the additional
 #'   variables to select, passed on to [dplyr::select()].
-#' @param .connection A `DBIConnection` object to the database, as returned by
-#'   `connect_to_vhio_database()`.
+#' @param .connection A `DBIConnection` object to the OncoClinical database, as
+#'   returned by `connect_to_vhio_database()` with
+#'   `database_name = "OncoClinical"`.
 #'
 #' @return A lazy [dplyr::tbl()] backed by the database with, in column order:
 #'   \describe{
@@ -113,7 +119,7 @@ safe_max <- function(x) {
 #'   [tidyselect::any_of()].
 #'
 #' @keywords internal
-select_tbl <-
+select_oncoclinical_tbl <-
   function(tbl, ..., .connection) {
     result_v0 <-
       dplyr::tbl(.connection, tbl) |>
@@ -145,6 +151,37 @@ select_tbl <-
     result
   }
 
+#' @title Select Variables from OncoClinical Across Forms
+#' @description
+#'   Locates, in the OncoClinical database, every table that contains the
+#'   requested variables and returns their values for the given project and
+#'   patients. Tables are found by matching the requested names against
+#'   `INFORMATION_SCHEMA.COLUMNS`, so the user does not need to know which form
+#'   each variable belongs to. For each table found, the variables are
+#'   retrieved with `select_oncoclinical_tbl()` (so the identifier columns
+#'   `dem_sap`, `project`, `event_arm`, `form` and `repeating_instance` are
+#'   always included), filtered to `.project` and `.patients`, and collected
+#'   into memory.
+#'
+#'   Only works with the OncoClinical database.
+#'
+#' @param ... Variable (column) names to retrieve, as strings or character
+#'   vectors. Names that do not exist in any table are silently ignored.
+#' @param .project A single string with the project name used to filter the
+#'   `project` column.
+#' @param .patients A vector of patient identifiers (`dem_sap`) to keep.
+#' @param .connection A `DBIConnection` object to the OncoClinical database, as
+#'   returned by `connect_to_vhio_database()` with
+#'   `database_name = "OncoClinical"`.
+#'
+#' @return If the variables are found in a single table, a collected tibble
+#'   with the columns described in `select_oncoclinical_tbl()`. Otherwise, an
+#'   unnamed list of collected tibbles, one per table, in the order the tables
+#'   are returned by the database metadata query. A variable present in more
+#'   than one table is retrieved from each of them.
+#'
+#' @seealso `select_oncoclinical_tbl()`
+#' @keywords internal
 oncoclinical_select <- function(
   ...,
   .project,
@@ -168,7 +205,7 @@ oncoclinical_select <- function(
     purrr::pmap(
       vars_metadata,
       function(table_name, variables, project, patients) {
-        select_tbl(
+        select_oncoclinical_tbl(
           table_name,
           variables$column_name,
           .connection = .connection
@@ -188,6 +225,31 @@ oncoclinical_select <- function(
   selection
 }
 
+#' @title Extract the Issues from a Verified Data Frame
+#' @description
+#'   Final step of the OncoClinical verifications (`ocv_*`). Takes a data frame
+#'   in which each row has been checked and flagged in a logical `.ok` column,
+#'   keeps the rows that failed the check, and builds a human-readable `issue`
+#'   message for each of them. Rows where `.ok` is `NA` are not dropped and are
+#'   therefore reported as issues.
+#'
+#' @param verified_data A data frame with a logical column `.ok` (`TRUE` when
+#'   the record passes the verification) and the columns `dem_sap` and
+#'   `event_arm`. Any column whose name is `form` or `repeating_instance`, or
+#'   starts with `form_` or `repeating_instance_` (e.g. the suffixed columns
+#'   resulting from a join), is kept as well.
+#' @param issue_text A single string used as a [glue::glue()] template to build
+#'   the message. It is evaluated within `verified_data`, so column names in
+#'   braces are replaced by their values for each row (e.g.
+#'   `"ttm_startdate ({ttm_startdate}) is after ttm_enddate ({ttm_enddate})"`).
+#'
+#' @return A tibble with one row per failed record and the columns `dem_sap`,
+#'   `event_arm`, the `form*` / `repeating_instance*` columns (in their original
+#'   order) and `issue`, a [glue::glue()] character column with the message.
+#'   Zero rows if every record passes.
+#'
+#' @seealso `ocv_next_setting_date_order()`
+#' @keywords internal
 filter_issues <- function(verified_data, issue_text) {
   # Columnas form*/repeating_instance*, en el orden en que vengan
   # (grep conserva el orden de las columnas del data frame)
@@ -266,11 +328,11 @@ filter_issues <- function(verified_data, issue_text) {
 #'   Returns a tibble with zero rows if the project has no records with
 #'   `ttm_stat == "Yes"`.
 #'
-#' @seealso `select_tbl()`
+#' @seealso `select_oncoclinical_tbl()`
 #' @keywords internal
 extract_ordered_treatment <- function(project, connection) {
   ttm_raw <-
-    select_tbl(
+    select_oncoclinical_tbl(
       "antineoplasic_therapy",
       "ttm_stat",
       "ttm_setting",

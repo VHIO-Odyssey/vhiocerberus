@@ -3,7 +3,11 @@
 
 ocv_pl1 <- function(project, connection) {
   first_pd <-
-    select_tbl("first_progression", "pd_date", .connection = connection) |>
+    select_oncoclinical_tbl(
+      "first_progression",
+      "pd_date",
+      .connection = connection
+    ) |>
     dplyr::filter(
       .data$project == .env$project,
       !is.na(.data$pd_date)
@@ -14,7 +18,7 @@ ocv_pl1 <- function(project, connection) {
     )
 
   ttms <-
-    select_tbl(
+    select_oncoclinical_tbl(
       "antineoplasic_therapy",
       "ttm_met_line_num",
       "ttm_startdate",
@@ -45,7 +49,7 @@ ocv_pl1 <- function(project, connection) {
 }
 
 ocv_pl2 <- function(project, connection) {
-  select_tbl(
+  select_oncoclinical_tbl(
     "antineoplasic_therapy",
     "ttm_startdate",
     "ttm_enddate",
@@ -67,7 +71,7 @@ ocv_pl2 <- function(project, connection) {
 
 ocv_pl3 <- function(project, connection) {
   ttms <-
-    select_tbl(
+    select_oncoclinical_tbl(
       "antineoplasic_therapy",
       "ttm_startdate",
       "ttm_enddate",

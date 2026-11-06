@@ -61,6 +61,6 @@ run_extract <- function(..., project = "p") {
 
   testthat::with_mocked_bindings(
     extract_ordered_treatment(project, connection = NULL),
-    select_tbl = function(tbl, ..., .connection) raw
+    select_oncoclinical_tbl = function(tbl, ..., .connection) raw
   )
 }

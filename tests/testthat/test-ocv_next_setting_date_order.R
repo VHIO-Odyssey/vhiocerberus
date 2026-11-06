@@ -14,7 +14,7 @@ test_that("repeating_instance of issues includes the next instance", {
 
   out <- testthat::with_mocked_bindings(
     ocv_next_setting_date_order("p", connection = NULL, "ttm_startdate"),
-    select_tbl = function(tbl, ..., .connection) {
+    select_oncoclinical_tbl = function(tbl, ..., .connection) {
       dplyr::mutate(
         ordered_raw,
         form = "antineoplasic_therapy",

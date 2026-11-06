@@ -64,6 +64,6 @@ sequence within patient (\code{dem_sap}) and \code{event_arm}, since a patient m
 have more than one cancer.
 }
 \seealso{
-\code{select_tbl()}
+\code{select_oncoclinical_tbl()}
 }
 \keyword{internal}
