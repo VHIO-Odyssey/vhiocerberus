@@ -34,6 +34,31 @@ test_that("keeps only the requested project and ttm_stat == 'Yes'", {
   expect_equal(out$repeating_instance, 1)
 })
 
+test_that("keeps only the requested patients", {
+  rows <- list(
+    met_row(1, "2020-01-01", dem_sap = 1), # 1
+    met_row(1, "2020-02-01", dem_sap = 2), # 2
+    met_row(1, "2020-03-01", dem_sap = 3) # 3
+  )
+
+  out <- do.call(run_extract, c(rows, list(patients = c(1, 3))))
+  expect_equal(sort(out$dem_sap), c(1, 3))
+  expect_equal(sort(out$repeating_instance), c(1, 3))
+
+  # Un paciente que no esta en los datos no genera filas ni error
+  out <- do.call(run_extract, c(rows, list(patients = c(2, 99))))
+  expect_equal(out$dem_sap, 2)
+})
+
+test_that("returns zero rows when patients is empty", {
+  out <- run_extract(met_row(1, "2020-01-01"), patients = numeric(0))
+
+  expect_equal(nrow(out), 0)
+  expect_true(all(
+    c("order", "setting_label", "reference_date") %in% names(out)
+  ))
+})
+
 test_that("returns zero rows when nothing matches", {
   out <- run_extract(met_row(1, "2020-01-01", stat = "No"))
 

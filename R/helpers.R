@@ -205,16 +205,33 @@ oncoclinical_select <- function(
     purrr::pmap(
       vars_metadata,
       function(table_name, variables, project, patients) {
-        select_oncoclinical_tbl(
-          table_name,
-          variables$column_name,
-          .connection = .connection
-        ) |>
+        result <-
+          select_oncoclinical_tbl(
+            table_name,
+            variables$column_name,
+            .connection = .connection
+          ) |>
           dplyr::filter(
             .data$dem_sap %in% .patients,
             .data$project == .project
           ) |>
           dplyr::collect()
+
+        date_vars <- variables |>
+          dplyr::filter(.data$data_type == "date") |>
+          dplyr::pull("column_name")
+
+        if (length(date_vars) > 0) {
+          result <-
+            result |>
+            dplyr::mutate(
+              dplyr::across(date_vars, lubridate::ymd)
+            )
+
+          return(result)
+        }
+
+        result
       },
       .project,
       .patients
@@ -330,7 +347,7 @@ filter_issues <- function(verified_data, issue_text) {
 #'
 #' @seealso `select_oncoclinical_tbl()`
 #' @keywords internal
-extract_ordered_treatment <- function(project, connection) {
+extract_ordered_treatment <- function(project, patients, connection) {
   ttm_raw <-
     select_oncoclinical_tbl(
       "antineoplasic_therapy",
@@ -345,6 +362,7 @@ extract_ordered_treatment <- function(project, connection) {
     ) |>
     dplyr::filter(
       .data$project == .env$project,
+      .data$dem_sap %in% patients,
       .data$ttm_stat == "Yes"
     ) |>
     dplyr::collect() |>

@@ -1,6 +1,18 @@
-verify_oncoclinical_data <- function(user, password, project) {
+verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
   connection <- connect_to_vhio_database(user, password, "OncoClinical")
   on.exit(DBI::dbDisconnect(connection), add = TRUE)
+
+  if (is.null(patients)) {
+    # Si no se especifican pacientes, se asumen todos los del proyecto
+    patients <-
+      select_oncoclinical_tbl(
+        "demographics",
+        "dem_sap",
+        .connection = connection
+      ) |>
+      dplyr::filter(.data$project == .env$project) |>
+      dplyr::pull("dem_sap")
+  }
 
   verifications <-
     oncoclinical_verifications |>
@@ -9,11 +21,18 @@ verify_oncoclinical_data <- function(user, password, project) {
     dplyr::mutate(
       issues = purrr::map(
         .data$verif_id,
-        \(verif_id) {
+        \(verif_id, project, patients, connection) {
           cli::cli_inform("Running {.val {verif_id}} verification...")
 
           result <- try(
-            do.call(verif_id, list(project = project, connection = connection)),
+            do.call(
+              verif_id,
+              list(
+                project = project,
+                patients = patients,
+                connection = connection
+              )
+            ),
             silent = TRUE
           )
 
@@ -33,7 +52,10 @@ verify_oncoclinical_data <- function(user, password, project) {
               # Esto elimina la columna de eventos e instancias si todas son 0
               -dplyr::where(~ all(. == 0))
             )
-        }
+        },
+        project,
+        patients,
+        connection
       )
     ) |>
     dplyr::mutate(

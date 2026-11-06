@@ -1,6 +1,7 @@
-test_that("repeating_instance of issues includes the next instance", {
-  # Las filas llegan en orden distinto al cronologico: instance != order
-  ordered_raw <- dplyr::bind_rows(
+# Filas con issues para los pacientes 1 y 2, y sin issues para el 3.
+# Las filas llegan en orden distinto al cronologico: instance != order
+ordered_raw <- function() {
+  dplyr::bind_rows(
     # Paciente 1: 1L empieza despues que 2L -> "is after"
     met_row(2, "2020-03-01", dem_sap = 1), # instance 1
     met_row(1, "2020-06-01", dem_sap = 1), # instance 2
@@ -11,18 +12,32 @@ test_that("repeating_instance of issues includes the next instance", {
     met_row(1, "2020-01-01", dem_sap = 3), # instance 5
     met_row(2, "2020-02-01", dem_sap = 3) # instance 6
   )
+}
 
-  out <- testthat::with_mocked_bindings(
-    ocv_next_setting_date_order("p", connection = NULL, "ttm_startdate"),
-    select_oncoclinical_tbl = function(tbl, ..., .connection) {
-      dplyr::mutate(
-        ordered_raw,
-        form = "antineoplasic_therapy",
-        repeating_instance = dplyr::row_number(),
-        .after = "event_arm"
-      )
-    }
+run_ocv_order <- function(patients, date_var = "ttm_startdate") {
+  raw <-
+    ordered_raw() |>
+    dplyr::mutate(
+      form = "antineoplasic_therapy",
+      repeating_instance = dplyr::row_number(),
+      .after = "event_arm"
+    )
+
+  testthat::with_mocked_bindings(
+    ocv_next_setting_date_order("p", patients, connection = NULL, date_var),
+    select_oncoclinical_tbl = function(tbl, ..., .connection) raw
   )
+}
+
+test_that("only the requested patients are verified", {
+  expect_equal(sort(unique(run_ocv_order(1:3)$dem_sap)), c(1, 2))
+  expect_equal(unique(run_ocv_order(2)$dem_sap), 2)
+  expect_equal(nrow(run_ocv_order(3)), 0)
+  expect_equal(nrow(run_ocv_order(numeric(0))), 0)
+})
+
+test_that("repeating_instance of issues includes the next instance", {
+  out <- run_ocv_order(1:3)
 
   expect_equal(nrow(out), 2)
 

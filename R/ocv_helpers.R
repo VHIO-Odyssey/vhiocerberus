@@ -24,6 +24,7 @@
 #' @keywords internal
 ocv_next_setting_date_order <- function(
   project,
+  patients,
   connection,
   date_var = c("ttm_startdate", "ttm_enddate", "ttm_pddate")
 ) {
@@ -31,7 +32,7 @@ ocv_next_setting_date_order <- function(
   next_var <- paste0("next_", date_var)
 
   ttm_and_next_ttm <-
-    extract_ordered_treatment(project, connection) |>
+    extract_ordered_treatment(project, patients, connection) |>
     add_next_setting_date(date_var)
 
   # Missing dates (current or next) are not issues

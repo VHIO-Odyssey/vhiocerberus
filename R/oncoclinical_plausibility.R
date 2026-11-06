@@ -1,37 +1,29 @@
 # OncoClinical plausibility verifications
 # named as ocv_pl<number>.
 
-ocv_pl1 <- function(project, connection) {
+ocv_pl1 <- function(project, patients, connection) {
   first_pd <-
-    select_oncoclinical_tbl(
-      "first_progression",
+    oncoclinical_select(
       "pd_date",
+      .project = project,
+      .patients = patients,
       .connection = connection
     ) |>
-    dplyr::filter(
-      .data$project == .env$project,
-      !is.na(.data$pd_date)
-    ) |>
-    dplyr::collect() |>
-    dplyr::mutate(
-      pd_date = lubridate::ymd(.data$pd_date)
-    )
+    dplyr::filter_out(is.na(.data$pd_date))
 
   ttms <-
-    select_oncoclinical_tbl(
-      "antineoplasic_therapy",
+    oncoclinical_select(
       "ttm_met_line_num",
       "ttm_startdate",
+      .project = project,
+      .patients = patients,
       .connection = connection
     ) |>
-    dplyr::filter(
-      .data$project == .env$project,
-      !is.na(.data$ttm_met_line_num),
-      !is.na(.data$ttm_startdate)
-    ) |>
-    dplyr::collect() |>
-    dplyr::mutate(
-      ttm_startdate = lubridate::ymd(.data$ttm_startdate)
+    dplyr::filter_out(
+      dplyr::when_any(
+        is.na(.data$ttm_met_line_num),
+        is.na(.data$ttm_startdate)
+      )
     )
 
   dplyr::inner_join(
@@ -48,19 +40,20 @@ ocv_pl1 <- function(project, connection) {
     )
 }
 
-ocv_pl2 <- function(project, connection) {
-  select_oncoclinical_tbl(
-    "antineoplasic_therapy",
+ocv_pl2 <- function(project, patients, connection) {
+  oncoclinical_select(
     "ttm_startdate",
     "ttm_enddate",
+    .project = project,
+    .patients = patients,
     .connection = connection
   ) |>
-    dplyr::filter(
-      .data$project == .env$project,
-      !is.na(.data$ttm_startdate),
-      !is.na(.data$ttm_enddate)
+    dplyr::filter_out(
+      dplyr::when_any(
+        is.na(.data$ttm_startdate),
+        is.na(.data$ttm_enddate)
+      )
     ) |>
-    dplyr::collect() |>
     dplyr::mutate(
       .ok = .data$ttm_startdate <= .data$ttm_enddate
     ) |>
@@ -69,18 +62,15 @@ ocv_pl2 <- function(project, connection) {
     )
 }
 
-ocv_pl3 <- function(project, connection) {
+ocv_pl3 <- function(project, patients, connection) {
   ttms <-
-    select_oncoclinical_tbl(
-      "antineoplasic_therapy",
+    oncoclinical_select(
       "ttm_startdate",
       "ttm_enddate",
+      .project = project,
+      .patients = patients,
       .connection = connection
-    ) |>
-    dplyr::filter(
-      .data$project == .env$project
-    ) |>
-    dplyr::collect()
+    )
 
   ocv_pl3_a <-
     ttms |>
@@ -124,20 +114,20 @@ ocv_pl3 <- function(project, connection) {
     dplyr::arrange(.data$dem_sap)
 }
 
-ocv_pl4 <- function(project, connection) {
-  ocv_next_setting_date_order(project, connection, "ttm_startdate")
+ocv_pl4 <- function(project, patients, connection) {
+  ocv_next_setting_date_order(project, patients, connection, "ttm_startdate")
 }
 
-ocv_pl5 <- function(project, connection) {
-  ocv_next_setting_date_order(project, connection, "ttm_enddate")
+ocv_pl5 <- function(project, patients, connection) {
+  ocv_next_setting_date_order(project, patients, connection, "ttm_enddate")
 }
 
-ocv_pl6 <- function(project, connection) {
-  ocv_next_setting_date_order(project, connection, "ttm_pddate")
+ocv_pl6 <- function(project, patients, connection) {
+  ocv_next_setting_date_order(project, patients, connection, "ttm_pddate")
 }
 
-ocv_pl7 <- function(project, connection) {
-  extract_ordered_treatment(project, connection) |>
+ocv_pl7 <- function(project, patients, connection) {
+  extract_ordered_treatment(project, patients, connection) |>
     add_next_setting_date("ttm_startdate") |>
     dplyr::mutate(
       repeating_instance = stringr::str_c(
@@ -154,8 +144,8 @@ ocv_pl7 <- function(project, connection) {
     )
 }
 
-ocv_pl8 <- function(project, connection) {
-  extract_ordered_treatment(project, connection) |>
+ocv_pl8 <- function(project, patients, connection) {
+  extract_ordered_treatment(project, patients, connection) |>
     add_next_setting_date("ttm_startdate") |>
     dplyr::mutate(
       repeating_instance = stringr::str_c(
@@ -172,8 +162,8 @@ ocv_pl8 <- function(project, connection) {
     )
 }
 
-ocv_pl9 <- function(project, connection) {
-  extract_ordered_treatment(project, connection) |>
+ocv_pl9 <- function(project, patients, connection) {
+  extract_ordered_treatment(project, patients, connection) |>
     dplyr::mutate(
       .ok = ttm_pddate >= ttm_startdate |
         is.na(ttm_pddate) |
