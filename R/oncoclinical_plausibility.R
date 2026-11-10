@@ -176,35 +176,91 @@ ocv_pl9 <- function(project, patients, connection) {
 
 ocv_pl10 <- function(project, patients, connection) {
   oncoclinical_select(
-    "dem_birthdate",
-    "dem_date_first_visit",
-    "tum_date_diagnosis",
-    "ttm_startdate",
-    "ttm_enddate",
-    "ttm_pddate",
-    "pd_date",
-    "pd_firstmets_date",
-    "surv_last_fu_date",
-    "surv_death_date",
+    oncoclinical_date_vars,
     .project = project,
     .patients = patients,
     .connection = connection
   ) |>
-    purrr::map(
-      ~ tidyr::pivot_longer(
-        .,
-        dplyr::where(lubridate::is.Date),
-        names_to = "variable",
-        values_to = "date"
-      )
-    ) |>
-    purrr::reduce(dplyr::bind_rows) |>
-    dplyr::filter_out(is.na(date)) |>
+    pivot_dates() |>
     dplyr::mutate(
       today = lubridate::today(),
-      .ok = date <= today
+      .ok = .data$date <= .data$today
     ) |>
     filter_issues(
       "{variable} ({date}) is after today ({today})"
+    )
+}
+
+ocv_pl11 <- function(project, patients, connection) {
+  dates <-
+    oncoclinical_select(
+      oncoclinical_date_vars[oncoclinical_date_vars != "dem_birthdate"],
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    pivot_dates()
+
+  birth_date <-
+    oncoclinical_select(
+      "dem_birthdate",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter_out(is.na(.data$dem_birthdate))
+
+  dplyr::full_join(
+    dates,
+    birth_date,
+    suffix = c("_1", "_2"),
+    by = c("dem_sap", "event_arm")
+  ) |>
+    dplyr::mutate(
+      .ok = .data$dem_birthdate < .data$date |
+        is.na(.data$dem_birthdate) |
+        is.na(.data$date)
+    ) |>
+    filter_issues(
+      "{variable} ({date}) is before dem_birthdate ({dem_birthdate})"
+    )
+}
+
+ocv_pl12 <- function(project, patients, connection) {
+  dates <-
+    oncoclinical_select(
+      "ttm_startdate",
+      "ttm_enddate",
+      "ttm_pddate",
+      "pd_date",
+      "surg_date",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    pivot_dates()
+
+  diag_date <-
+    oncoclinical_select(
+      "tum_date_diagnosis",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter_out(is.na(.data$tum_date_diagnosis))
+
+  dplyr::left_join(
+    dates,
+    diag_date,
+    suffix = c("_1", "_2"),
+    by = c("dem_sap", "event_arm")
+  ) |>
+    dplyr::mutate(
+      .ok = tum_date_diagnosis <= date |
+        is.na(tum_date_diagnosis) |
+        is.na(date)
+    ) |>
+    filter_issues(
+      "{variable} ({date}) is before tum_date_diagnosis ({tum_date_diagnosis})"
     )
 }

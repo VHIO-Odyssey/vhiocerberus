@@ -717,3 +717,41 @@ add_next_setting_date <- function(extract_ordered_treatment_data, date_var) {
     dplyr::left_join(next_by_run, by = c("dem_sap", "event_arm", "run")) |>
     dplyr::select(-"run")
 }
+
+
+#' @title Pivot Date Columns to Long Format
+#' @description
+#'   Reshapes a list of tibbles, such as the one returned by
+#'   `oncoclinical_select()` when the requested variables live in several
+#'   tables, into a single long tibble with one row per non-missing date.
+#'   In each tibble, every column of class `Date` is pivoted into a `variable`
+#'   (column name) and `date` (value) pair with [tidyr::pivot_longer()]. The
+#'   resulting tibbles are then stacked with [dplyr::bind_rows()] and the rows
+#'   with a missing `date` are dropped.
+#'
+#' @param data A list of data frames (e.g. tibbles), each with at least one
+#'   column of class `Date`. A single data frame is not supported: it would be
+#'   iterated column by column.
+#'
+#' @return A tibble with all the non-`Date` columns of the input tibbles (those
+#'   not shared between tibbles are filled with `NA`), plus:
+#'   \describe{
+#'     \item{variable}{Name of the original date column.}
+#'     \item{date}{Date value, never `NA`.}
+#'   }
+#'
+#' @seealso `oncoclinical_select()`
+#' @keywords internal
+pivot_dates <- function(data) {
+  purrr::map(
+    data,
+    ~ tidyr::pivot_longer(
+      .,
+      dplyr::where(lubridate::is.Date),
+      names_to = "variable",
+      values_to = "date"
+    )
+  ) |>
+    purrr::reduce(dplyr::bind_rows) |>
+    dplyr::filter_out(is.na(date))
+}

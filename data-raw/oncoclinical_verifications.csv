@@ -9,3 +9,5 @@ ocv_pl7;plausibility;ttm_enddate is before or equal to the ttm_startdate of the 
 ocv_pl8;plausibility;ttm_pddate is before or equal to the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
 ocv_pl9;plausibility;ttm_pddate is after or equal to ttm_startdate;;1;1;1;1;1;1;1;1
 ocv_pl10;plausibility;dem_birthdate, dem_date_first_visit, tum_date_diagnosis, ttm_startdate, ttm_enddate, ttm_pddate, pd_date, pd_firstmets_date, surv_last_fu_date and surv_death_date are before today.;;1;1;1;1;1;1;1;1
+ocv_pl11;plausibility; dem_date_first_visit, tum_date_diagnosis, ttm_startdate, ttm_enddate, ttm_pddate, pd_date, pd_firstmets_date, surv_last_fu_date and surv_death_date are after dem_birthdate;;1;1;1;1;1;1;1;1
+ocv_pl12;plausibility;ttm_startdate, ttm_enddate, ttm_pddate, pd_date, surg_date are after tum_date_diagnosis;;1;1;1;1;1;1;1;1
