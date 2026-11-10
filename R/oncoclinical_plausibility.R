@@ -394,3 +394,73 @@ ocv_pl17 <- function(project, patients, connection) {
       "Unaccepted combination of tum_m_at_diagnosis ({tum_m_at_diagnosis}), tum_tnm_stage ({tum_tnm_stage}) and tum_tnm_group ({tum_tnm_group})"
     )
 }
+
+ocv_pl18 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "tum_stage_dx",
+    "tum_m_at_diagnosis",
+    "tum_tnm_stage",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    # sólo centrado en los casos con las tres variables completas.
+    # Problemas por falta de dato son un issue de completeness
+    na.omit() |>
+    dplyr::mutate(
+      advanced_stage = .data$tum_stage_dx == "Metastatic" &
+        .data$tum_m_at_diagnosis == "M1" &
+        .data$tum_tnm_stage == "IV",
+      early_stage = .data$tum_stage_dx != "Metastatic" &
+        .data$tum_m_at_diagnosis != "M1" &
+        .data$tum_tnm_stage != "IV",
+      .ok = .data$advanced_stage | .data$early_stage
+    ) |>
+    filter_issues(
+      "Unaccepted combination of tum_stage_dx ({tum_stage_dx}), tum_m_at_diagnosis ({tum_m_at_diagnosis}) and tum_tnm_stage ({tum_tnm_stage})"
+    )
+}
+
+ocv_pl19 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "tum_m_at_diagnosis",
+    "tum_tnm_group",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    na.omit() |>
+    dplyr::mutate(
+      .ok = (.data$tum_m_at_diagnosis == "M1" & .data$tum_tnm_group == "IVB") |
+        (.data$tum_m_at_diagnosis != "M1" & .data$tum_tnm_group != "IVB")
+    ) |>
+    filter_issues(
+      "Unexpected combination of tum_m_at_diagnosis ({tum_m_at_diagnosis}) and tum_tnm_group ({tum_tnm_group}) "
+    )
+}
+
+ocv_pl20 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "tum_sync_met",
+    "tum_m_at_diagnosis",
+    "tum_tnm_stage",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    # sólo centrado en los casos con las tres variables completas.
+    # Problemas por falta de dato son un issue de completeness
+    na.omit() |>
+    dplyr::mutate(
+      advanced_stage = .data$tum_sync_met == "Yes" &
+        .data$tum_m_at_diagnosis == "M1" &
+        .data$tum_tnm_stage == "IV",
+      early_stage = .data$tum_sync_met == "No" &
+        .data$tum_m_at_diagnosis != "M1" &
+        .data$tum_tnm_stage != "IV",
+      .ok = .data$advanced_stage | .data$early_stage
+    ) |>
+    filter_issues(
+      "Unaccepted combination of tum_sync_met ({tum_sync_met}), tum_m_at_diagnosis ({tum_m_at_diagnosis}) and tum_tnm_stage ({tum_tnm_stage})"
+    )
+}
