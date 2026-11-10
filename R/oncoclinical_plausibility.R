@@ -173,3 +173,38 @@ ocv_pl9 <- function(project, patients, connection) {
       "{setting_label} ttm_pddate ({ttm_pddate}) is before ttm_startdate ({ttm_startdate})"
     )
 }
+
+ocv_pl10 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "dem_birthdate",
+    "dem_date_first_visit",
+    "tum_date_diagnosis",
+    "ttm_startdate",
+    "ttm_enddate",
+    "ttm_pddate",
+    "pd_date",
+    "pd_firstmets_date",
+    "surv_last_fu_date",
+    "surv_death_date",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    purrr::map(
+      ~ tidyr::pivot_longer(
+        .,
+        dplyr::where(lubridate::is.Date),
+        names_to = "variable",
+        values_to = "date"
+      )
+    ) |>
+    purrr::reduce(dplyr::bind_rows) |>
+    dplyr::filter_out(is.na(date)) |>
+    dplyr::mutate(
+      today = lubridate::today(),
+      .ok = date <= today
+    ) |>
+    filter_issues(
+      "{variable} ({date}) is after today ({today})"
+    )
+}
