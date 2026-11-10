@@ -368,3 +368,29 @@ ocv_pl16 <- function(project, patients, connection) {
       "tum_tumor_site is {tum_tumor_site} (expected 'Breast Left', 'Breast Right', NA"
     )
 }
+
+ocv_pl17 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "tum_m_at_diagnosis",
+    "tum_tnm_stage",
+    "tum_tnm_group",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    # sólo centrado en los casos con las tres variables completas.
+    # Problemas por falta de dato son un issue de completeness
+    na.omit() |>
+    dplyr::mutate(
+      advanced_stage = .data$tum_m_at_diagnosis == "M1" &
+        .data$tum_tnm_stage == "IV" &
+        .data$tum_tnm_group == "IV",
+      early_stage = .data$tum_m_at_diagnosis != "M1" &
+        .data$tum_tnm_stage != "IV" &
+        .data$tum_tnm_group != "IV",
+      .ok = .data$advanced_stage | .data$early_stage
+    ) |>
+    filter_issues(
+      "Unaccepted combination of tum_m_at_diagnosis ({tum_m_at_diagnosis}), tum_tnm_stage ({tum_tnm_stage}) and tum_tnm_group ({tum_tnm_group})"
+    )
+}

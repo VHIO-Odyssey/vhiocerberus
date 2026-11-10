@@ -15,3 +15,5 @@ ocv_pl13;plausibility;pd_crpc_date is after first ttm_startdate;;0;0;0;0;1;0;0;0
 ocv_pl14;plausibility;tum_psa value is positive;;0;0;0;0;1;0;0;0
 ocv_pl15;plausibility;metbiopsy_date is after or equal to tum_date_diagnosis;;1;0;1;1;1;0;0;1
 ocv_pl16;plausibility;tum_tumor_site is breast_left OR breast_right OR NA;;1;0;0;0;0;0;0;0
+ocv_pl17;plausibility;(tum_m_at_diagnosis = M1 AND tum_tnm_stage = IV AND tum_tnm_group = IV) OR (tum_m_at_diagnosis != M1 AND tum_tnm_stage != IV AND tum_tnm_group != IV);;1;0;0;0;0;0;0;0
+ocv_pl18;plausibility;(tum_stage_dx = 'metastatic' AND  tum_tum_m_at_diagnosis = 1 AND tum_tnm_stage = 4) OR (tum_stage_dx != metastatic AND  tum_tum_m_at_diagnosis != 1 AND tum_tnm_stage != 4);;1;0;1;0;0;0;0;1
