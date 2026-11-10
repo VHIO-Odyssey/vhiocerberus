@@ -9,7 +9,8 @@ filter_patients(data, patients)
 \arguments{
 \item{data}{A data frame or lazy \code{\link[dplyr:tbl]{dplyr::tbl()}} with a \code{dem_sap} column.}
 
-\item{patients}{A vector of patient identifiers, or \code{NULL} for no filter.}
+\item{patients}{A vector (numeric, character or factor) of patient
+identifiers, or \code{NULL} for no filter.}
 }
 \value{
 \code{data}, filtered if \code{patients} is not \code{NULL}.
@@ -17,6 +18,8 @@ filter_patients(data, patients)
 \description{
 Keeps the rows of \code{data} (a data frame or a lazy database table) whose
 \code{dem_sap} is in \code{patients}. If \code{patients} is \code{NULL}, \code{data} is returned
-unchanged, so no patient filter is sent to the database.
+unchanged, so no patient filter is sent to the database. Identifiers that
+cannot be converted to numbers are silently dropped (and never match rows
+with a missing \code{dem_sap}).
 }
 \keyword{internal}

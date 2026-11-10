@@ -12,6 +12,27 @@ test_that("keeps only the requested patients", {
   expect_equal(nrow(filter_patients(data, numeric(0))), 0)
 })
 
+test_that("non-numeric identifiers are dropped without error", {
+  data <- tibble::tibble(dem_sap = c(1, 2, 3), x = 1:3)
+
+  expect_no_error(result <- filter_patients(data, c("2", "12A", "abc")))
+  expect_equal(result$x, 2L)
+  expect_equal(nrow(filter_patients(data, c("12A", "abc"))), 0)
+})
+
+test_that("non-numeric identifiers do not match missing dem_sap", {
+  data <- tibble::tibble(dem_sap = c(1, NA, 3), x = 1:3)
+
+  expect_equal(filter_patients(data, c("1", "12A"))$x, 1L)
+  expect_equal(nrow(filter_patients(data, NA)), 0)
+})
+
+test_that("factor identifiers are matched by label, not by code", {
+  data <- tibble::tibble(dem_sap = c(10, 20, 30), x = 1:3)
+
+  expect_equal(filter_patients(data, factor(c("30", "10")))$x, c(1L, 3L))
+})
+
 test_that("translates to SQL only when patients is not NULL", {
   skip_if_not_installed("dbplyr")
 

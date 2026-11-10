@@ -244,10 +244,13 @@ oncoclinical_select <- function(
 #' @description
 #'   Keeps the rows of `data` (a data frame or a lazy database table) whose
 #'   `dem_sap` is in `patients`. If `patients` is `NULL`, `data` is returned
-#'   unchanged, so no patient filter is sent to the database.
+#'   unchanged, so no patient filter is sent to the database. Identifiers that
+#'   cannot be converted to numbers are silently dropped (and never match rows
+#'   with a missing `dem_sap`).
 #'
 #' @param data A data frame or lazy [dplyr::tbl()] with a `dem_sap` column.
-#' @param patients A vector of patient identifiers, or `NULL` for no filter.
+#' @param patients A vector (numeric, character or factor) of patient
+#'   identifiers, or `NULL` for no filter.
 #'
 #' @return `data`, filtered if `patients` is not `NULL`.
 #' @keywords internal
@@ -255,6 +258,13 @@ filter_patients <- function(data, patients) {
   if (is.null(patients)) {
     return(data)
   }
+
+  # as.character() evita que un factor se convierta en sus códigos internos
+  patients <- as.numeric(as.character(patients)) |>
+    suppressWarnings()
+  # Los id's no numéricos (NA) no deben coincidir con dem_sap = NA
+  patients <- patients[!is.na(patients)]
+
   dplyr::filter(data, .data$dem_sap %in% .env$patients)
 }
 
