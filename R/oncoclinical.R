@@ -282,7 +282,7 @@ report_oncoclinical_verifications <- function(
     dplyr::filter(!is.na(.data$n_issues), .data$n_issues > 0) |>
     dplyr::pull("verif_id")
 
-  # issues_by_sap goes right after the summary; omitted if there are no issues
+  # all_issues goes right after the summary; omitted if there are no issues
   n_fixed_sheets <- if (length(issue_verif_ids) > 0) 3 else 2
 
   sheets <- c(
@@ -291,7 +291,7 @@ report_oncoclinical_verifications <- function(
       verifications_summary = verifications_summary
     ),
     if (length(issue_verif_ids) > 0) {
-      list(issues_by_sap = issues_by_sap(oncoclinical_verifications))
+      list(all_issues = issues_by_sap(oncoclinical_verifications))
     },
     oncoclinical_verifications |>
       dplyr::filter(.data$n_issues > 0) |>

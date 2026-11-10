@@ -264,3 +264,57 @@ ocv_pl12 <- function(project, patients, connection) {
       "{variable} ({date}) is before tum_date_diagnosis ({tum_date_diagnosis})"
     )
 }
+
+ocv_pl13 <- function(project, patients, connection) {
+  pd_crpc <-
+    oncoclinical_select(
+      "pd_crpc_date",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter_out(is.na(.data$pd_crpc_date))
+
+  first_ttm <-
+    oncoclinical_select(
+      "ttm_startdate",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter_out(is.na(.data$ttm_startdate)) |>
+    dplyr::slice_min(
+      .data$ttm_startdate,
+      n = 1,
+      with_ties = FALSE,
+      by = c("dem_sap", "event_arm")
+    )
+
+  dplyr::left_join(
+    pd_crpc,
+    first_ttm,
+    by = c("dem_sap", "event_arm"),
+    suffix = c("_1", "_2")
+  ) |>
+    dplyr::mutate(
+      .ok = .data$pd_crpc_date > .data$ttm_startdate
+    ) |>
+    filter_issues(
+      "pd_crpc_date ({pd_crpc_date}) is before the first recorded ttm_startdate ({ttm_startdate})"
+    )
+}
+
+ocv_pl14 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "tum_psa",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    dplyr::mutate(
+      .ok = .data$tum_psa > 0 | is.na(.data$tum_psa)
+    ) |>
+    filter_issues(
+      "tum_psa value is negative ({.data$tum_psa})"
+    )
+}
