@@ -180,6 +180,55 @@ warn_patients_not_in_project <- function(patients, project, connection) {
   invisible(not_found)
 }
 
+#' @title Issues of All Verifications, Ordered by Patient
+#' @description
+#'   Stacks the issues of every verification that found any into a single
+#'   tibble ordered by `dem_sap`. All columns are converted to character so
+#'   that issues with different column types can be combined, and the
+#'   `form` and `repeating_instance` columns are renamed with a `_1` suffix to
+#'   match the `_2`, `_3` suffixed columns of verifications comparing several
+#'   forms.
+#'
+#' @param verifications A tibble as returned by `verify_oncoclinical_data()`.
+#'
+#' @return A tibble with the columns `dem_sap`, `verif_id`, the form and
+#'   repeating instance columns present in the issues, and `issue`.
+#' @keywords internal
+issues_by_sap <- function(verifications) {
+  verifications |>
+    dplyr::filter(!is.na(.data$n_issues), .data$n_issues > 0) |>
+    dplyr::mutate(
+      issues = purrr::map(
+        .data$issues,
+        \(x) {
+          x |>
+            dplyr::mutate(
+              dplyr::across(tidyselect::everything(), as.character)
+            ) |>
+            dplyr::rename_with(
+              \(name) stringr::str_c(name, "_1"),
+              tidyselect::any_of(c("form", "repeating_instance"))
+            )
+        }
+      )
+    ) |>
+    tidyr::unnest("issues") |>
+    dplyr::arrange(.data$dem_sap) |>
+    dplyr::select(
+      "dem_sap",
+      "verif_id",
+      tidyselect::any_of(c(
+        "form_1",
+        "repeating_instance_1",
+        "form_2",
+        "repeating_instance_2",
+        "form_3",
+        "repeating_instance_3"
+      )),
+      "issue"
+    )
+}
+
 report_oncoclinical_verifications <- function(
   oncoclinical_verifications,
   folder = NULL
@@ -233,11 +282,17 @@ report_oncoclinical_verifications <- function(
     dplyr::filter(!is.na(.data$n_issues), .data$n_issues > 0) |>
     dplyr::pull("verif_id")
 
+  # issues_by_sap goes right after the summary; omitted if there are no issues
+  n_fixed_sheets <- if (length(issue_verif_ids) > 0) 3 else 2
+
   sheets <- c(
     list(
       project_info = project_info,
       verifications_summary = verifications_summary
     ),
+    if (length(issue_verif_ids) > 0) {
+      list(issues_by_sap = issues_by_sap(oncoclinical_verifications))
+    },
     oncoclinical_verifications |>
       dplyr::filter(.data$n_issues > 0) |>
       dplyr::select("verif_id", "issues") |>
@@ -249,7 +304,10 @@ report_oncoclinical_verifications <- function(
 
   summary_sheet_name <- names(sheets)[2]
   # Map each verif_id to its (possibly truncated) sheet name
-  sheet_name_map <- stats::setNames(names(sheets)[-(1:2)], issue_verif_ids)
+  sheet_name_map <- stats::setNames(
+    names(sheets)[-seq_len(n_fixed_sheets)],
+    issue_verif_ids
+  )
 
   workbook <- openxlsx::createWorkbook()
   header_style <- openxlsx::createStyle(
@@ -301,9 +359,9 @@ report_oncoclinical_verifications <- function(
     )
   }
 
-  # Below each verification table, add a link back to the summary
-  for (verif_id in issue_verif_ids) {
-    sheet_name <- sheet_name_map[[verif_id]]
+  # Below each issues table, add a link back to the summary
+  sheets_with_back_link <- names(sheets)[-(1:2)]
+  for (sheet_name in sheets_with_back_link) {
     back_row <- nrow(sheets[[sheet_name]]) + 3
     openxlsx::writeFormula(
       workbook,
