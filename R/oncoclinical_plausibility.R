@@ -249,7 +249,7 @@ ocv_pl12 <- function(project, patients, connection) {
     ) |>
     dplyr::filter_out(is.na(.data$tum_date_diagnosis))
 
-  dplyr::left_join(
+  dplyr::inner_join(
     dates,
     diag_date,
     suffix = c("_1", "_2"),
@@ -290,7 +290,7 @@ ocv_pl13 <- function(project, patients, connection) {
       by = c("dem_sap", "event_arm")
     )
 
-  dplyr::left_join(
+  dplyr::inner_join(
     pd_crpc,
     first_ttm,
     by = c("dem_sap", "event_arm"),
@@ -316,5 +316,55 @@ ocv_pl14 <- function(project, patients, connection) {
     ) |>
     filter_issues(
       "tum_psa value is negative ({.data$tum_psa})"
+    )
+}
+
+ocv_pl15 <- function(project, patients, connection) {
+  biopsy_date <-
+    oncoclinical_select(
+      "metbiopsy_date",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    )
+
+  diag_date <-
+    oncoclinical_select(
+      "tum_date_diagnosis",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    )
+
+  dplyr::inner_join(
+    biopsy_date,
+    diag_date,
+    by = c("dem_sap", "event_arm"),
+    suffix = c("_1", "_2")
+  ) |>
+    dplyr::mutate(
+      .ok = .data$metbiopsy_date >= .data$tum_date_diagnosis |
+        is.na(.data$metbiopsy_date) |
+        is.na(.data$tum_date_diagnosis)
+    ) |>
+    filter_issues(
+      "metbiopsy_date {metbiopsy_date} is before tum_date_diagnosis ({tum_date_diagnosis})"
+    )
+}
+
+ocv_pl16 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "tum_tumor_site",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    dplyr::mutate(
+      .ok = tum_tumor_site %in%
+        c("Breast Right", "Breast Left") |
+        is.na(.data$tum_tumor_site)
+    ) |>
+    filter_issues(
+      "tum_tumor_site is {tum_tumor_site} (expected 'Breast Left', 'Breast Right', NA"
     )
 }

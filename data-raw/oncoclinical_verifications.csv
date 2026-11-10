@@ -14,3 +14,4 @@ ocv_pl12;plausibility;ttm_startdate, ttm_enddate, ttm_pddate, pd_date, surg_date
 ocv_pl13;plausibility;pd_crpc_date is after first ttm_startdate;;0;0;0;0;1;0;0;0
 ocv_pl14;plausibility;tum_psa value is positive;;0;0;0;0;1;0;0;0
 ocv_pl15;plausibility;metbiopsy_date is after or equal to tum_date_diagnosis;;1;0;1;1;1;0;0;1
+ocv_pl16;plausibility;tum_tumor_site is breast_left OR breast_right OR NA;;1;0;0;0;0;0;0;0
