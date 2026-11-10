@@ -1,5 +1,6 @@
 #' @keywords internal
 #' @importFrom rlang .data .env :=
+#' @importFrom dbplyr sql
 #' @importFrom stats na.omit
 #' @importFrom utils tail
 "_PACKAGE"

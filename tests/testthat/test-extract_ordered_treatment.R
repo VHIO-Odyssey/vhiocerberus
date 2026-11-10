@@ -50,6 +50,17 @@ test_that("keeps only the requested patients", {
   expect_equal(out$dem_sap, 2)
 })
 
+test_that("patients = NULL applies no patient filter", {
+  out <- run_extract(
+    met_row(1, "2020-01-01", dem_sap = 1),
+    met_row(1, "2020-02-01", dem_sap = 2),
+    met_row(1, "2020-03-01", dem_sap = 3),
+    patients = NULL
+  )
+
+  expect_equal(sort(out$dem_sap), 1:3)
+})
+
 test_that("returns zero rows when patients is empty", {
   out <- run_extract(met_row(1, "2020-01-01"), patients = numeric(0))
 

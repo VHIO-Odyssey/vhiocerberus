@@ -52,12 +52,12 @@ run_verify <- function(project = "breast", patients = NULL, stub = NULL) {
   list(out = out, seen = seen$patients)
 }
 
-test_that("defaults to every patient of the project", {
+test_that("patients = NULL is passed on as no patient filter", {
   res <- run_verify("breast")
 
   expect_true(length(res$seen) > 0)
   for (p in res$seen) {
-    expect_equal(sort(p), c(1, 2, 4))
+    expect_null(p)
   }
 })
 
@@ -68,6 +68,24 @@ test_that("passes an explicit subset of patients to every verification", {
   for (p in res$seen) {
     expect_equal(p, c(2, 4))
   }
+})
+
+test_that("warns about patients not in the project but still runs", {
+  # dem_sap 3 es de otro proyecto y 99 no existe
+  expect_warning(
+    res <- run_verify("breast", patients = c(1, 3, 99)),
+    "2 patients not found in project"
+  )
+
+  expect_true(length(res$seen) > 0)
+  for (p in res$seen) {
+    expect_equal(p, c(1, 3, 99))
+  }
+})
+
+test_that("does not warn when all the patients are in the project", {
+  expect_no_warning(run_verify("breast", patients = c(1, 2)))
+  expect_no_warning(run_verify("breast"))
 })
 
 test_that("runs only the verifications enabled for the project", {
@@ -86,6 +104,24 @@ test_that("returns issues, counts and attributes", {
   expect_true(all(purrr::map_lgl(res$out$issues, \(x) x$dem_sap == "1")))
   expect_equal(attr(res$out, "project"), "breast")
   expect_s3_class(attr(res$out, "verification_datetime"), "POSIXct")
+})
+
+test_that("stores the unique requested patients as an attribute", {
+  expect_equal(
+    attr(run_verify("breast", patients = c(1, 2, 2))$out, "patients"),
+    c(1, 2)
+  )
+  expect_null(attr(run_verify("breast")$out, "patients"))
+})
+
+test_that("an unknown project is an error before connecting", {
+  testthat::with_mocked_bindings(
+    expect_error(
+      verify_oncoclinical_data("user", "password", project = "nope"),
+      "project"
+    ),
+    connect_to_vhio_database = function(...) stop("should not connect")
+  )
 })
 
 test_that("a failing verification gives NULL issues and NA n_issues", {

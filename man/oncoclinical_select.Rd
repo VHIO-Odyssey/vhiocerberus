@@ -4,7 +4,7 @@
 \alias{oncoclinical_select}
 \title{Select Variables from OncoClinical Across Forms}
 \usage{
-oncoclinical_select(..., .project, .patients, .connection)
+oncoclinical_select(..., .project, .patients = NULL, .connection)
 }
 \arguments{
 \item{...}{Variable (column) names to retrieve, as strings or character
@@ -13,7 +13,9 @@ vectors. Names that do not exist in any table are silently ignored.}
 \item{.project}{A single string with the project name used to filter the
 \code{project} column.}
 
-\item{.patients}{A vector of patient identifiers (\code{dem_sap}) to keep.}
+\item{.patients}{A vector of patient identifiers (\code{dem_sap}) to keep. If
+\code{NULL} (the default), no filter on patients is applied, i.e. all the
+patients of \code{.project} are kept.}
 
 \item{.connection}{A \code{DBIConnection} object to the OncoClinical database, as
 returned by \code{connect_to_vhio_database()} with

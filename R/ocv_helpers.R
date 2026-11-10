@@ -13,6 +13,8 @@
 #'   Records with a missing `date_var` or no next setting are never reported.
 #'
 #' @param project A single string with the project name.
+#' @param patients A vector of patient identifiers (`dem_sap`) to verify, or
+#'   `NULL` for all the patients of the project.
 #' @param connection A `DBIConnection` object to the database, as returned by
 #'   `connect_to_vhio_database()`.
 #' @param date_var A single string with the date column to verify: one of

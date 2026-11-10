@@ -55,6 +55,18 @@ test_that("filters by project and patients", {
   expect_true(all(out$project == "p"))
 })
 
+test_that("patients = NULL keeps every patient of the project", {
+  out <- run_oncoclinical_select(
+    "ttm_startdate",
+    .patients = NULL,
+    metadata = metadata_one_table,
+    tables = tables_one
+  )
+
+  expect_equal(out$dem_sap, c(1, 2, 3))
+  expect_true(all(out$project == "p"))
+})
+
 test_that("returns zero rows when patients is empty", {
   out <- run_oncoclinical_select(
     "ttm_startdate",

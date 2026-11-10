@@ -50,7 +50,7 @@ m1_row <- function(start = NA_character_, ...) {
 
 # Ejecuta extract_ordered_treatment() sobre las filas dadas. `repeating_instance`
 # es la posicion de la fila en la entrada, para identificarlas en la salida.
-# Si `patients` es NULL se piden todos los pacientes presentes en las filas.
+# `patients = NULL` significa sin filtro de pacientes.
 run_extract <- function(..., project = "p", patients = NULL) {
   raw <-
     dplyr::bind_rows(...) |>
@@ -59,10 +59,6 @@ run_extract <- function(..., project = "p", patients = NULL) {
       repeating_instance = dplyr::row_number(),
       .after = "event_arm"
     )
-
-  if (is.null(patients)) {
-    patients <- unique(raw$dem_sap)
-  }
 
   testthat::with_mocked_bindings(
     extract_ordered_treatment(project, patients, connection = NULL),

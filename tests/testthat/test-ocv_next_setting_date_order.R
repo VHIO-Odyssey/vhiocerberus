@@ -30,6 +30,7 @@ run_ocv_order <- function(patients, date_var = "ttm_startdate") {
 }
 
 test_that("only the requested patients are verified", {
+  expect_equal(sort(unique(run_ocv_order(NULL)$dem_sap)), c(1, 2))
   expect_equal(sort(unique(run_ocv_order(1:3)$dem_sap)), c(1, 2))
   expect_equal(unique(run_ocv_order(2)$dem_sap), 2)
   expect_equal(nrow(run_ocv_order(3)), 0)

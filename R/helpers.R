@@ -169,7 +169,9 @@ select_oncoclinical_tbl <-
 #'   vectors. Names that do not exist in any table are silently ignored.
 #' @param .project A single string with the project name used to filter the
 #'   `project` column.
-#' @param .patients A vector of patient identifiers (`dem_sap`) to keep.
+#' @param .patients A vector of patient identifiers (`dem_sap`) to keep. If
+#'   `NULL` (the default), no filter on patients is applied, i.e. all the
+#'   patients of `.project` are kept.
 #' @param .connection A `DBIConnection` object to the OncoClinical database, as
 #'   returned by `connect_to_vhio_database()` with
 #'   `database_name = "OncoClinical"`.
@@ -185,7 +187,7 @@ select_oncoclinical_tbl <-
 oncoclinical_select <- function(
   ...,
   .project,
-  .patients,
+  .patients = NULL,
   .connection
 ) {
   vars_metadata <-
@@ -204,17 +206,15 @@ oncoclinical_select <- function(
   selection <-
     purrr::pmap(
       vars_metadata,
-      function(table_name, variables, project, patients) {
+      function(table_name, variables) {
         result <-
           select_oncoclinical_tbl(
             table_name,
             variables$column_name,
             .connection = .connection
           ) |>
-          dplyr::filter(
-            .data$dem_sap %in% .patients,
-            .data$project == .project
-          ) |>
+          dplyr::filter(.data$project == .project) |>
+          filter_patients(.patients) |>
           dplyr::collect()
 
         date_vars <- variables |>
@@ -225,21 +225,37 @@ oncoclinical_select <- function(
           result <-
             result |>
             dplyr::mutate(
-              dplyr::across(date_vars, lubridate::ymd)
+              dplyr::across(dplyr::all_of(date_vars), lubridate::ymd)
             )
 
           return(result)
         }
 
         result
-      },
-      .project,
-      .patients
+      }
     )
   if (length(selection) == 1) {
     return(selection[[1]])
   }
   selection
+}
+
+#' @title Filter a Table by Patients
+#' @description
+#'   Keeps the rows of `data` (a data frame or a lazy database table) whose
+#'   `dem_sap` is in `patients`. If `patients` is `NULL`, `data` is returned
+#'   unchanged, so no patient filter is sent to the database.
+#'
+#' @param data A data frame or lazy [dplyr::tbl()] with a `dem_sap` column.
+#' @param patients A vector of patient identifiers, or `NULL` for no filter.
+#'
+#' @return `data`, filtered if `patients` is not `NULL`.
+#' @keywords internal
+filter_patients <- function(data, patients) {
+  if (is.null(patients)) {
+    return(data)
+  }
+  dplyr::filter(data, .data$dem_sap %in% .env$patients)
 }
 
 #' @title Extract the Issues from a Verified Data Frame
@@ -317,6 +333,8 @@ filter_issues <- function(verified_data, issue_text) {
 #'
 #' @param project A single string with the project name used to filter the
 #'   `project` column of the source table.
+#' @param patients A vector of patient identifiers (`dem_sap`) to keep, or
+#'   `NULL` to keep all the patients of the project.
 #' @param connection A `DBIConnection` object to the database, as returned by
 #'   `connect_to_vhio_database()`.
 #'
@@ -362,9 +380,9 @@ extract_ordered_treatment <- function(project, patients, connection) {
     ) |>
     dplyr::filter(
       .data$project == .env$project,
-      .data$dem_sap %in% patients,
       .data$ttm_stat == "Yes"
     ) |>
+    filter_patients(patients) |>
     dplyr::collect() |>
     dplyr::mutate(
       reference_date = dplyr::case_when(

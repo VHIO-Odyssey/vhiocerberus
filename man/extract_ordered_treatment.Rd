@@ -4,11 +4,14 @@
 \alias{extract_ordered_treatment}
 \title{Extract and Chronologically Order Antineoplastic Treatments}
 \usage{
-extract_ordered_treatment(project, connection)
+extract_ordered_treatment(project, patients, connection)
 }
 \arguments{
 \item{project}{A single string with the project name used to filter the
 \code{project} column of the source table.}
+
+\item{patients}{A vector of patient identifiers (\code{dem_sap}) to keep, or
+\code{NULL} to keep all the patients of the project.}
 
 \item{connection}{A \code{DBIConnection} object to the database, as returned by
 \code{connect_to_vhio_database()}.}

@@ -1,18 +1,39 @@
+#' @title Run the OncoClinical Verifications of a Project
+#' @description
+#'   Connects to the OncoClinical database and runs every verification (`ocv_*`)
+#'   enabled for `project` in `oncoclinical_verifications`. A verification that
+#'   fails to run does not stop the others: it is reported and its result is
+#'   `NULL`.
+#'
+#'   Records are always filtered by `project` and, if `patients` is given, also
+#'   by patient, so a patient present in several projects only contributes the
+#'   records of `project`.
+#'
+#' @param user,password Credentials used to connect to the database.
+#' @param project A single string with the project name. It must be one of the
+#'   project columns of `oncoclinical_verifications`.
+#' @param patients A vector of patient identifiers (`dem_sap`) to verify, or
+#'   `NULL` (the default) to verify all the patients of the project. Patients
+#'   without a record in `project` are ignored with a warning.
+#'
+#' @return A tibble with one row per verification and the columns `verif_id`,
+#'   `type`, `verification`, `details`, `n_issues` (`NA` if the verification
+#'   failed to run) and `issues` (list-column with the tibble of issues, or
+#'   `NULL` if it failed). Identifier columns whose values are all `0` are
+#'   dropped from each tibble of issues. The attributes `project`,
+#'   `verification_datetime` and `patients` (the unique requested patients, or
+#'   `NULL` if all were verified) are used by
+#'   `report_oncoclinical_verifications()`.
+#'
+#' @seealso `report_oncoclinical_verifications()`
 verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
+  project <- rlang::arg_match0(project, oncoclinical_projects())
+
   connection <- connect_to_vhio_database(user, password, "OncoClinical")
   on.exit(DBI::dbDisconnect(connection), add = TRUE)
 
-  if (is.null(patients)) {
-    # Si no se especifican pacientes, se asumen todos los del proyecto
-    patients <-
-      select_oncoclinical_tbl(
-        "demographics",
-        "dem_sap",
-        .connection = connection
-      ) |>
-      dplyr::filter(.data$project == .env$project) |>
-      dplyr::pull("dem_sap")
-  }
+  # patients = NULL: sin filtro de pacientes, se verifican todos los del proyecto
+  warn_patients_not_in_project(patients, project, connection)
 
   verifications <-
     oncoclinical_verifications |>
@@ -48,10 +69,7 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
             dplyr::mutate(
               dem_sap = as.character(.data$dem_sap)
             ) |>
-            dplyr::select(
-              # Esto elimina la columna de eventos e instancias si todas son 0
-              -dplyr::where(~ all(. == 0))
-            )
+            drop_zero_id_columns()
         },
         project,
         patients,
@@ -69,7 +87,97 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
 
   attr(verifications, "project") <- project
   attr(verifications, "verification_datetime") <- Sys.time()
+  attr(verifications, "patients") <- if (is.null(patients)) {
+    NULL
+  } else {
+    unique(patients)
+  }
   verifications
+}
+
+#' @title Project Names Available in the Verifications
+#' @description
+#'   Names of the project columns of `oncoclinical_verifications`, i.e. the
+#'   projects for which verifications can be run.
+#'
+#' @return A character vector of project names.
+#' @keywords internal
+oncoclinical_projects <- function() {
+  setdiff(
+    names(oncoclinical_verifications),
+    c("verif_id", "type", "verification", "details")
+  )
+}
+
+#' @title Drop Identifier Columns That Are Always Zero
+#' @description
+#'   Removes the `event_arm` and `repeating_instance` columns (including the
+#'   suffixed ones, e.g. `repeating_instance_1`) of a tibble of issues when
+#'   every value is `0`, since they carry no information (the form is not
+#'   repeating or has a single event). Columns with missing values, and every
+#'   column of a tibble with zero rows, are kept.
+#'
+#' @param issues A tibble of issues as returned by `filter_issues()`.
+#'
+#' @return `issues` without the all-zero identifier columns.
+#' @keywords internal
+drop_zero_id_columns <- function(issues) {
+  id_cols <- grep(
+    "^(event_arm|repeating_instance)(_.*)?$",
+    names(issues),
+    value = TRUE
+  )
+  all_zero <- vapply(
+    issues[id_cols],
+    \(x) length(x) > 0 && !anyNA(x) && all(x == 0),
+    logical(1)
+  )
+
+  dplyr::select(issues, !tidyselect::all_of(id_cols[all_zero]))
+}
+
+#' @title Warn About Patients Absent from a Project
+#' @description
+#'   Checks that every requested patient has a record in the `demographics`
+#'   form of `project` and, if some do not, issues a warning listing them.
+#'   Those patients would otherwise be silently ignored by the verifications.
+#'   Nothing is queried if `patients` is `NULL`.
+#'
+#' @param patients A vector of patient identifiers (`dem_sap`), or `NULL`.
+#' @param project A single string with the project name.
+#' @param connection A `DBIConnection` object to the OncoClinical database.
+#'
+#' @return Invisibly, the patients not found in the project (a vector of the
+#'   same type as `patients`, empty if all were found).
+#' @keywords internal
+warn_patients_not_in_project <- function(patients, project, connection) {
+  if (is.null(patients)) {
+    return(invisible(NULL))
+  }
+
+  patients <- unique(patients)
+
+  found <-
+    select_oncoclinical_tbl(
+      "demographics",
+      "dem_sap",
+      .connection = connection
+    ) |>
+    dplyr::filter(.data$project == .env$project) |>
+    filter_patients(patients) |>
+    dplyr::pull("dem_sap")
+
+  not_found <- patients[!patients %in% found]
+
+  if (length(not_found) > 0) {
+    cli::cli_warn(c(
+      "{length(not_found)} patient{?s} not found in project {.val {project}}.",
+      "x" = "{.val {not_found}}",
+      "i" = "They are ignored by the verifications."
+    ))
+  }
+
+  invisible(not_found)
 }
 
 report_oncoclinical_verifications <- function(
@@ -81,10 +189,14 @@ report_oncoclinical_verifications <- function(
     oncoclinical_verifications,
     "verification_datetime"
   )
+  patients <- attr(oncoclinical_verifications, "patients")
   report_file_name <-
     stringr::str_c(
       project,
-      "_oncoclinical_verifications_",
+      "_oncoclinical_verifications",
+      # NULL se omite: solo los informes de un subset llevan este sufijo
+      if (!is.null(patients)) "_subset",
+      "_",
       format(verification_datetime, "%Y%m%d_%H%M"),
       ".xlsx"
     )
@@ -99,6 +211,11 @@ report_oncoclinical_verifications <- function(
 
   project_info <- dplyr::tibble(
     project = project,
+    patients = if (is.null(patients)) {
+      "All patients in the project"
+    } else {
+      stringr::str_c("Subset of ", length(patients), " patients")
+    },
     verification_datetime = verification_datetime
   )
 
