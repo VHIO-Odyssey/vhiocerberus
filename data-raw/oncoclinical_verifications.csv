@@ -2,7 +2,7 @@
 ocv_pl1;plausibility;pd_date is before any advanced disease treatment;;0;1;0;0;0;0;0;0
 ocv_pl2;plausibility;ttm_startdate is before or equal ttm_enddate;;1;1;1;1;1;1;1;1
 ocv_pl3;plausibility;ttm_startdate and ttm_enddate are different across instances;La idea es detectar posibles duplicados (instancias con mismas fechas de inicio y fin);1;1;1;1;1;1;1;1
-ocv_pl4;plausibility;ttm_stardate is before the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
+ocv_pl4;plausibility;ttm_startdate is before the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
 ocv_pl5;plausibility;ttm_enddate is before the ttm_enddate of the next setting;;1;1;1;1;1;1;1;1
 ocv_pl6;plausibility;ttm_pddate is before the ttm_pddate of the next setting;;1;1;1;1;1;1;1;1
 ocv_pl7;plausibility;ttm_enddate is before or equal to the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
@@ -14,15 +14,15 @@ ocv_pl12;plausibility;ttm_startdate, ttm_enddate, ttm_pddate, pd_date, surg_date
 ocv_pl13;plausibility;pd_crpc_date is after first ttm_startdate;;0;0;0;0;1;0;0;0
 ocv_pl14;plausibility;tum_psa value is positive;;0;0;0;0;1;0;0;0
 ocv_pl15;plausibility;metbiopsy_date is after or equal to tum_date_diagnosis;;1;0;1;1;1;0;0;1
-ocv_pl16;plausibility;tum_tumor_site is 'breast_left' or b'reast_right' or NA;;1;0;0;0;0;0;0;0
+ocv_pl16;plausibility;tum_tumor_site is 'breast_left' or 'breast_right' or NA;;1;0;0;0;0;0;0;0
 ocv_pl17;plausibility;(tum_m_at_diagnosis = 'M1' and tum_tnm_stage = 'IV' and tum_tnm_group = 'IV') or (tum_m_at_diagnosis != 'M1' and tum_tnm_stage != 'IV' and tum_tnm_group != 'IV');;1;0;0;0;0;0;0;0
 ocv_pl18;plausibility;(tum_stage_dx = 'Metastatic' and  tum_m_at_diagnosis = 'M1' and tum_tnm_stage = 'IV') or (tum_stage_dx != 'Metastatic' and  tum_m_at_diagnosis != 'M1' and tum_tnm_stage != 'IV');;0;0;1;0;0;0;0;1
 ocv_pl19;plausibility;(tum_m_at_diagnosis = 'M1' and tum_tnm_group = 'IVB') or (tum_m_at_diagnosis != 'M1' and tum_tnm_group != 'IVB');;0;0;0;0;1;0;0;0
 ocv_pl20;plausibility;(tum_sync_met = 'Yes' and tum_m_at_diagnosis = 'M1' and tum_tnm_stage= 'IV') or (tum_sync_met != 'Yes' and tum_m_at_diagnosis != 'M1' and tum_tnm_stage != 'IV');;0;1;0;0;0;0;0;0
 ocv_pl21;plausibility;pd_date is before or equal to pd_distant_date;;1;0;0;0;0;0;0;0
-ocv_pl22;plausibility;surv_last_fu_date or surv_death_date are equal or after all the varible dates (from instruments !Survival);;1;1;1;1;1;1;1;1
+ocv_pl22;plausibility;surv_last_fu_date or surv_death_date are equal or after all the variable dates (from instruments !Survival);;1;1;1;1;1;1;1;1
 ocv_pl23;plausibility;surv_date_reviewed is equal or after surv_last_fu_date or surv_death_date ;;1;1;1;1;1;1;1;1
-ocv_pl24;plausibility;(mol_claudine18_val >= 75 and mol_claudine18_cutoff = ' >= 75') or (mol_claudine18_val < 75 AND mol_claudine18_cutoff =  '< 75') ;;0;0;1;0;0;0;0;0
+ocv_pl24;plausibility;(mol_claudine18_val >= 75 and mol_claudine18_cutoff = '>= 75') or (mol_claudine18_val < 75 AND mol_claudine18_cutoff =  '<75') ;;0;0;1;0;0;0;0;0
 ocv_pl25;plausibility;pd_stat = 'No' and all ttm_setting != 'Metastatic or Palliative';;0;1;0;1;0;0;0;0
 ocv_pl26;plausibility;pd_stat = 'No' and tum_m_at_diagnosis != 'M1' and all ttm_setting != 'Metastatic or Palliative';;1;0;0;0;0;0;0;0
 ocv_pl27;plausibility;surv_death_date equal or after surv_last_fu_date;;1;1;1;1;1;1;1;1

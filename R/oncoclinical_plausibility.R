@@ -2,6 +2,7 @@
 # named as ocv_pl<number>.
 
 ocv_pl1 <- function(project, patients, connection) {
+  # pd_date is before any advanced disease treatment
   first_pd <-
     oncoclinical_select(
       "pd_date",
@@ -41,6 +42,7 @@ ocv_pl1 <- function(project, patients, connection) {
 }
 
 ocv_pl2 <- function(project, patients, connection) {
+  # ttm_startdate is before or equal ttm_enddate
   oncoclinical_select(
     "ttm_startdate",
     "ttm_enddate",
@@ -63,6 +65,7 @@ ocv_pl2 <- function(project, patients, connection) {
 }
 
 ocv_pl3 <- function(project, patients, connection) {
+  # ttm_startdate and ttm_enddate are different across instances
   ttms <-
     oncoclinical_select(
       "ttm_startdate",
@@ -115,18 +118,22 @@ ocv_pl3 <- function(project, patients, connection) {
 }
 
 ocv_pl4 <- function(project, patients, connection) {
+  # ttm_startdate is before the ttm_startdate of the next setting
   ocv_next_setting_date_order(project, patients, connection, "ttm_startdate")
 }
 
 ocv_pl5 <- function(project, patients, connection) {
+  # ttm_enddate is before the ttm_enddate of the next setting
   ocv_next_setting_date_order(project, patients, connection, "ttm_enddate")
 }
 
 ocv_pl6 <- function(project, patients, connection) {
+  # ttm_pddate is before the ttm_pddate of the next setting
   ocv_next_setting_date_order(project, patients, connection, "ttm_pddate")
 }
 
 ocv_pl7 <- function(project, patients, connection) {
+  # ttm_enddate is before or equal to the ttm_startdate of the next setting
   extract_ordered_treatment(project, patients, connection) |>
     add_next_setting_date("ttm_startdate") |>
     dplyr::mutate(
@@ -145,6 +152,7 @@ ocv_pl7 <- function(project, patients, connection) {
 }
 
 ocv_pl8 <- function(project, patients, connection) {
+  # ttm_pddate is before or equal to the ttm_startdate of the next setting
   extract_ordered_treatment(project, patients, connection) |>
     add_next_setting_date("ttm_startdate") |>
     dplyr::mutate(
@@ -163,6 +171,7 @@ ocv_pl8 <- function(project, patients, connection) {
 }
 
 ocv_pl9 <- function(project, patients, connection) {
+  # ttm_pddate is after or equal to ttm_startdate
   extract_ordered_treatment(project, patients, connection) |>
     dplyr::mutate(
       .ok = .data$ttm_pddate >= .data$ttm_startdate |
@@ -175,6 +184,7 @@ ocv_pl9 <- function(project, patients, connection) {
 }
 
 ocv_pl10 <- function(project, patients, connection) {
+  # all date variables are before today.
   oncoclinical_select(
     get_oncoclinical_date_variables(connection),
     .project = project,
@@ -192,6 +202,7 @@ ocv_pl10 <- function(project, patients, connection) {
 }
 
 ocv_pl11 <- function(project, patients, connection) {
+  # all date variables are after dem_birthdate
   date_vars <- get_oncoclinical_date_variables(connection)
 
   dates <-
@@ -229,6 +240,7 @@ ocv_pl11 <- function(project, patients, connection) {
 }
 
 ocv_pl12 <- function(project, patients, connection) {
+  # ttm_startdate, ttm_enddate, ttm_pddate, pd_date, surg_date are after tum_date_diagnosis
   dates <-
     oncoclinical_select(
       "ttm_startdate",
@@ -268,6 +280,7 @@ ocv_pl12 <- function(project, patients, connection) {
 }
 
 ocv_pl13 <- function(project, patients, connection) {
+  # pd_crpc_date is after first ttm_startdate
   pd_crpc <-
     oncoclinical_select(
       "pd_crpc_date",
@@ -307,6 +320,7 @@ ocv_pl13 <- function(project, patients, connection) {
 }
 
 ocv_pl14 <- function(project, patients, connection) {
+  # tum_psa value is positive
   oncoclinical_select(
     "tum_psa",
     .project = project,
@@ -322,6 +336,7 @@ ocv_pl14 <- function(project, patients, connection) {
 }
 
 ocv_pl15 <- function(project, patients, connection) {
+  # metbiopsy_date is after or equal to tum_date_diagnosis
   biopsy_date <-
     oncoclinical_select(
       "metbiopsy_date",
@@ -355,6 +370,7 @@ ocv_pl15 <- function(project, patients, connection) {
 }
 
 ocv_pl16 <- function(project, patients, connection) {
+  # tum_tumor_site is 'breast_left' or 'breast_right' or NA
   oncoclinical_select(
     "tum_tumor_site",
     .project = project,
@@ -372,6 +388,7 @@ ocv_pl16 <- function(project, patients, connection) {
 }
 
 ocv_pl17 <- function(project, patients, connection) {
+  # (tum_m_at_diagnosis = 'M1' and tum_tnm_stage = 'IV' and tum_tnm_group = 'IV') or (tum_m_at_diagnosis != 'M1' and tum_tnm_stage != 'IV' and tum_tnm_group != 'IV')
   oncoclinical_select(
     "tum_m_at_diagnosis",
     "tum_tnm_stage",
@@ -398,6 +415,7 @@ ocv_pl17 <- function(project, patients, connection) {
 }
 
 ocv_pl18 <- function(project, patients, connection) {
+  # (tum_stage_dx = 'Metastatic' and  tum_m_at_diagnosis = 'M1' and tum_tnm_stage = 'IV') or (tum_stage_dx != 'Metastatic' and  tum_m_at_diagnosis != 'M1' and tum_tnm_stage != 'IV')
   oncoclinical_select(
     "tum_stage_dx",
     "tum_m_at_diagnosis",
@@ -424,6 +442,7 @@ ocv_pl18 <- function(project, patients, connection) {
 }
 
 ocv_pl19 <- function(project, patients, connection) {
+  # (tum_m_at_diagnosis = 'M1' and tum_tnm_group = 'IVB') or (tum_m_at_diagnosis != 'M1' and tum_tnm_group != 'IVB')
   oncoclinical_select(
     "tum_m_at_diagnosis",
     "tum_tnm_group",
@@ -442,6 +461,7 @@ ocv_pl19 <- function(project, patients, connection) {
 }
 
 ocv_pl20 <- function(project, patients, connection) {
+  # (tum_sync_met = 'Yes' and tum_m_at_diagnosis = 'M1' and tum_tnm_stage= 'IV') or (tum_sync_met != 'Yes' and tum_m_at_diagnosis != 'M1' and tum_tnm_stage != 'IV')
   oncoclinical_select(
     "tum_sync_met",
     "tum_m_at_diagnosis",
@@ -468,6 +488,7 @@ ocv_pl20 <- function(project, patients, connection) {
 }
 
 ocv_pl21 <- function(project, patients, connection) {
+  # pd_date is before or equal to pd_distant_date
   oncoclinical_select(
     "pd_date",
     "pd_distant_date",
@@ -486,6 +507,7 @@ ocv_pl21 <- function(project, patients, connection) {
 }
 
 ocv_pl22 <- function(project, patients, connection) {
+  # surv_last_fu_date or surv_death_date are equal or after all the variable dates (from instruments !Survival)
   #wip valorar verificación solo cognos
   # en esta verificación salen muchas fechas de cognos. Valorar con data
   # curators si crear una verificación tipo completeness. La idea es que si van
@@ -542,6 +564,7 @@ ocv_pl22 <- function(project, patients, connection) {
 }
 
 ocv_pl23 <- function(project, patients, connection) {
+  # surv_date_reviewed is equal or after surv_last_fu_date or surv_death_date
   oncoclinical_select(
     "surv_last_fu_date",
     "surv_death_date",
@@ -573,6 +596,7 @@ ocv_pl23 <- function(project, patients, connection) {
 }
 
 ocv_pl24 <- function(project, patients, connection) {
+  # (mol_claudine18_val >= 75 and mol_claudine18_cutoff = '>= 75') or (mol_claudine18_val < 75 AND mol_claudine18_cutoff =  '<75')
   oncoclinical_select(
     "mol_claudine18_val",
     "mol_claudine18_cutoff",
@@ -594,6 +618,7 @@ ocv_pl24 <- function(project, patients, connection) {
 }
 
 ocv_pl25 <- function(project, patients, connection) {
+  # pd_stat = 'No' and all ttm_setting != 'Metastatic or Palliative'
   pd_stat_no <-
     oncoclinical_select(
       "pd_stat",
@@ -634,6 +659,7 @@ ocv_pl25 <- function(project, patients, connection) {
 }
 
 ocv_pl26 <- function(project, patients, connection) {
+  # pd_stat = 'No' and tum_m_at_diagnosis != 'M1' and all ttm_setting != 'Metastatic or Palliative'
   pd_stat_no <-
     oncoclinical_select(
       "pd_stat",
@@ -694,6 +720,7 @@ ocv_pl26 <- function(project, patients, connection) {
 }
 
 ocv_pl27 <- function(project, patients, connection) {
+  # surv_death_date equal or after surv_last_fu_date
   oncoclinical_select(
     "surv_last_fu_date",
     "surv_death_date",
