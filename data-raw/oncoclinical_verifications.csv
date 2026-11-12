@@ -8,8 +8,8 @@ ocv_pl6;plausibility;ttm_pddate is before the ttm_pddate of the next setting;;1;
 ocv_pl7;plausibility;ttm_enddate is before or equal to the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
 ocv_pl8;plausibility;ttm_pddate is before or equal to the ttm_startdate of the next setting;;1;1;1;1;1;1;1;1
 ocv_pl9;plausibility;ttm_pddate is after or equal to ttm_startdate;;1;1;1;1;1;1;1;1
-ocv_pl10;plausibility;dem_birthdate, dem_date_first_visit, tum_date_diagnosis, ttm_startdate, ttm_enddate, ttm_pddate, pd_date, pd_firstmets_date, surv_last_fu_date and surv_death_date are before today.;;1;1;1;1;1;1;1;1
-ocv_pl11;plausibility; dem_date_first_visit, tum_date_diagnosis, ttm_startdate, ttm_enddate, ttm_pddate, pd_date, pd_firstmets_date, surv_last_fu_date and surv_death_date are after dem_birthdate;;1;1;1;1;1;1;1;1
+ocv_pl10;plausibility;all date variables are before today.;Las variables 'date' se capturan consultando en INFORMATION_SCHEMA.COLUMNS;1;1;1;1;1;1;1;1
+ocv_pl11;plausibility; all date variables are after dem_birthdate;Las variables 'date' se capturan consultando en INFORMATION_SCHEMA.COLUMNS;1;1;1;1;1;1;1;1
 ocv_pl12;plausibility;ttm_startdate, ttm_enddate, ttm_pddate, pd_date, surg_date are after tum_date_diagnosis;;1;1;1;1;1;1;1;1
 ocv_pl13;plausibility;pd_crpc_date is after first ttm_startdate;;0;0;0;0;1;0;0;0
 ocv_pl14;plausibility;tum_psa value is positive;;0;0;0;0;1;0;0;0
@@ -18,4 +18,6 @@ ocv_pl16;plausibility;tum_tumor_site is breast_left OR breast_right OR NA;;1;0;0
 ocv_pl17;plausibility;(tum_m_at_diagnosis = M1 AND tum_tnm_stage = IV AND tum_tnm_group = IV) OR (tum_m_at_diagnosis != M1 AND tum_tnm_stage != IV AND tum_tnm_group != IV);;1;0;0;0;0;0;0;0
 ocv_pl18;plausibility;(tum_stage_dx = Metastatic AND  tum_m_at_diagnosis = M1 AND tum_tnm_stage = IV) OR (tum_stage_dx != Metastatic AND  tum_m_at_diagnosis != M1 AND tum_tnm_stage != IV);;0;0;1;0;0;0;0;1
 ocv_pl19;plausibility;(tum_m_at_diagnosis = M1 AND tum_tnm_group = IVB) OR (tum_m_at_diagnosis != M1 AND tum_tnm_group != IVB);;0;0;0;0;1;0;0;0
-ocv_pl20;plausibility;(tum_sync_met = Yes AND tum_m_at_diagnosis = M1 & tum_tnm_stage= IV) OR (tum_sync_met != Yes AND tum_m_at_diagnosis != M1 & tum_tnm_stage != IV);;0;1;0;0;0;0;0;0
+ocv_pl20;plausibility;(tum_sync_met = Yes AND tum_m_at_diagnosis = M1 AND tum_tnm_stage= IV) OR (tum_sync_met != Yes AND tum_m_at_diagnosis != M1 AND tum_tnm_stage != IV);;0;1;0;0;0;0;0;0
+ocv_pl21;plausibility;pd_date is before or equal to pd_distant_date;;1;0;0;0;0;0;0;0
+ocv_pl22;plausibility;surv_last_fu_date OR surv_death_date are equal or after all the varible dates (from instruments !Survival);;1;1;1;1;1;1;1;1

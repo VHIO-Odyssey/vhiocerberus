@@ -1,7 +1,7 @@
 # verify_oncoclinical_data() sin conexion real: se simulan la conexion, la
 # tabla de demografia y las verificaciones ocv_*.
 
-verif_ids <- paste0("ocv_pl", 1:9)
+verif_ids <- oncoclinical_verifications$verif_id
 
 # Ejecuta verify_oncoclinical_data() con las verificaciones sustituidas por
 # `stub`. Devuelve el resultado y los `patients` que recibio cada verificacion.

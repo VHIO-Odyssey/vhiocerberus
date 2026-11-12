@@ -56,21 +56,21 @@ test_that("only verifications with issues get their own sheet", {
 
   expect_equal(
     openxlsx::getSheetNames(path),
-    c("project_info", "verifications_summary", "issues_by_sap", "ocv_pl2")
+    c("project_info", "verifications_summary", "all_issues", "ocv_pl2")
   )
 })
 
-test_that("issues_by_sap is the third sheet, right after the summary", {
+test_that("all_issues is the third sheet, right after the summary", {
   path <- run_report(fake_verifications())
 
-  expect_equal(openxlsx::getSheetNames(path)[3], "issues_by_sap")
+  expect_equal(openxlsx::getSheetNames(path)[3], "all_issues")
 
-  issues <- openxlsx::read.xlsx(path, sheet = "issues_by_sap")
+  issues <- openxlsx::read.xlsx(path, sheet = "all_issues")
   expect_equal(issues$dem_sap, "1")
   expect_equal(issues$verif_id, "ocv_pl2")
 })
 
-test_that("issues_by_sap is omitted when there are no issues", {
+test_that("all_issues is omitted when there are no issues", {
   verifications <- fake_verifications()
   verifications$n_issues <- c(0L, 0L)
   path <- run_report(verifications)

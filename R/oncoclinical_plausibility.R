@@ -36,7 +36,7 @@ ocv_pl1 <- function(project, patients, connection) {
       .ok = .data$pd_date <= .data$ttm_startdate
     ) |>
     filter_issues(
-      "{ttm_met_line_num}L start ({ttm_startdate}) is before pd_date ({pd_date})"
+      "{ttm_met_line_num}L ttm_startdate ({ttm_startdate}) is before pd_date ({pd_date})"
     )
 }
 
@@ -176,7 +176,7 @@ ocv_pl9 <- function(project, patients, connection) {
 
 ocv_pl10 <- function(project, patients, connection) {
   oncoclinical_select(
-    oncoclinical_date_vars,
+    get_oncoclinical_date_variables(connection),
     .project = project,
     .patients = patients,
     .connection = connection
@@ -192,9 +192,11 @@ ocv_pl10 <- function(project, patients, connection) {
 }
 
 ocv_pl11 <- function(project, patients, connection) {
+  date_vars <- get_oncoclinical_date_variables(connection)
+
   dates <-
     oncoclinical_select(
-      oncoclinical_date_vars[oncoclinical_date_vars != "dem_birthdate"],
+      date_vars[date_vars != "dem_birthdate"],
       .project = project,
       .patients = patients,
       .connection = connection
@@ -462,5 +464,75 @@ ocv_pl20 <- function(project, patients, connection) {
     ) |>
     filter_issues(
       "Unaccepted combination of tum_sync_met ({tum_sync_met}), tum_m_at_diagnosis ({tum_m_at_diagnosis}) and tum_tnm_stage ({tum_tnm_stage})"
+    )
+}
+
+ocv_pl21 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "pd_date",
+    "pd_distant_date",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    dplyr::mutate(
+      .ok = pd_date <= pd_distant_date | is.na(pd_date) | is.na(pd_distant_date)
+    ) |>
+    filter_issues(
+      "pd_date ({pd_date}) is after pd_distant_date ({pd_distant_date})"
+    )
+}
+
+ocv_pl22 <- function(project, patients, connection) {
+  #wip valorar verificación solo cognos
+  # en esta verificación salen muchas fechas de cognos. Valorar con data
+  # curators si crear una verificación tipo completeness. La idea es que si van
+  # entrando fechas de cognos más allá del fup, eso significa que el caso está
+  # desactualizado.
+  date_vars <- get_oncoclinical_date_variables(connection) |>
+    stringr::str_subset("^surv_", negate = TRUE)
+
+  dates <-
+    oncoclinical_select(
+      date_vars,
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    pivot_dates()
+
+  surv_dates <-
+    oncoclinical_select(
+      "surv_last_fu_date",
+      "surv_death_date",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::mutate(
+      surv_ref_date = dplyr::if_else(
+        !is.na(surv_last_fu_date),
+        surv_last_fu_date,
+        surv_death_date
+      ),
+      surv_ref_date_name = dplyr::if_else(
+        !is.na(surv_last_fu_date),
+        "surv_last_fu_date",
+        "surv_death_date"
+      )
+    ) |>
+    dplyr::select(-surv_last_fu_date, -surv_death_date)
+
+  dplyr::inner_join(
+    dates,
+    surv_dates,
+    by = c("dem_sap", "event_arm"),
+    suffix = c("_1", "_2")
+  ) |>
+    dplyr::mutate(
+      .ok = date <= surv_ref_date | is.na(date) | is.na(surv_ref_date)
+    ) |>
+    filter_issues(
+      "{variable} ({date}) is after {surv_ref_date_name} ({surv_ref_date})"
     )
 }

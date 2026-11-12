@@ -93,3 +93,53 @@ ocv_next_setting_date_order <- function(
 
   dplyr::bind_rows(is_after, is_equal)
 }
+
+
+#' @title Get the Date Variables Defined in the OncoClinical Database
+#' @description
+#'   Queries the database catalogue (`INFORMATION_SCHEMA.COLUMNS`) and returns
+#'   the names of all the columns defined with the SQL Server `date` type. Use
+#'   it to discover which variables can be treated as dates without hard-coding
+#'   their names.
+#'
+#' @param connection A `DBIConnection` object to the SQL Server database, as
+#'   returned by `connect_to_vhio_database()`.
+#'
+#' @return A character vector with the alphabetically sorted names of the
+#'   columns whose SQL Server type is `date`. Returns a zero-length character
+#'   vector if the database has no such columns.
+#'
+#' @details
+#'   Before querying, the function checks that `connection` is connected to the
+#'   `OncoClinical` database (via `DB_NAME()`) and aborts with an error
+#'   otherwise.
+#'
+#'   All the tables and views of the database are inspected. The database is a
+#'   copy of a REDCap project, where variable names are unique across
+#'   instruments, so each name is expected to appear in a single table and no
+#'   de-duplication is done. Columns of any other type (`datetime`, `time`, or
+#'   dates stored as text such as `varchar`) are not included. The queries use
+#'   SQL Server functions and data type names, so they are not guaranteed to
+#'   work with other database engines.
+#'
+#' @keywords internal
+get_oncoclinical_date_variables <- function(connection) {
+  database_name <- DBI::dbGetQuery(connection, "SELECT DB_NAME() AS db")$db
+
+  if (!identical(database_name, "OncoClinical")) {
+    cli::cli_abort(c(
+      "x" = "{.arg connection} must be connected to the {.val OncoClinical} database.",
+      "i" = "It is connected to {.val {database_name}}."
+    ))
+  }
+
+  DBI::dbGetQuery(
+    connection,
+    "
+  SELECT COLUMN_NAME
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE DATA_TYPE = 'date'
+  ORDER BY COLUMN_NAME
+"
+  )$COLUMN_NAME
+}
