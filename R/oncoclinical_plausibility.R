@@ -258,9 +258,9 @@ ocv_pl12 <- function(project, patients, connection) {
     by = c("dem_sap", "event_arm")
   ) |>
     dplyr::mutate(
-      .ok = tum_date_diagnosis <= date |
-        is.na(tum_date_diagnosis) |
-        is.na(date)
+      .ok = .data$tum_date_diagnosis <= .data$date |
+        is.na(.data$tum_date_diagnosis) |
+        is.na(.data$date)
     ) |>
     filter_issues(
       "{variable} ({date}) is before tum_date_diagnosis ({tum_date_diagnosis})"
@@ -362,7 +362,7 @@ ocv_pl16 <- function(project, patients, connection) {
     .connection = connection
   ) |>
     dplyr::mutate(
-      .ok = tum_tumor_site %in%
+      .ok = .data$tum_tumor_site %in%
         c("Breast Right", "Breast Left") |
         is.na(.data$tum_tumor_site)
     ) |>
@@ -476,7 +476,9 @@ ocv_pl21 <- function(project, patients, connection) {
     .connection = connection
   ) |>
     dplyr::mutate(
-      .ok = pd_date <= pd_distant_date | is.na(pd_date) | is.na(pd_distant_date)
+      .ok = .data$pd_date <= .data$pd_distant_date |
+        is.na(.data$pd_date) |
+        is.na(.data$pd_distant_date)
     ) |>
     filter_issues(
       "pd_date ({pd_date}) is after pd_distant_date ({pd_distant_date})"
@@ -511,17 +513,17 @@ ocv_pl22 <- function(project, patients, connection) {
     ) |>
     dplyr::mutate(
       surv_ref_date = dplyr::if_else(
-        !is.na(surv_last_fu_date),
-        surv_last_fu_date,
-        surv_death_date
+        !is.na(.data$surv_death_date),
+        .data$surv_death_date,
+        .data$surv_last_fu_date
       ),
       surv_ref_date_name = dplyr::if_else(
-        !is.na(surv_last_fu_date),
-        "surv_last_fu_date",
-        "surv_death_date"
+        !is.na(.data$surv_death_date),
+        "surv_death_date",
+        "surv_last_fu_date"
       )
     ) |>
-    dplyr::select(-surv_last_fu_date, -surv_death_date)
+    dplyr::select(-"surv_last_fu_date", -"surv_death_date")
 
   dplyr::inner_join(
     dates,
@@ -530,9 +532,63 @@ ocv_pl22 <- function(project, patients, connection) {
     suffix = c("_1", "_2")
   ) |>
     dplyr::mutate(
-      .ok = date <= surv_ref_date | is.na(date) | is.na(surv_ref_date)
+      .ok = .data$date <= .data$surv_ref_date |
+        is.na(.data$date) |
+        is.na(.data$surv_ref_date)
     ) |>
     filter_issues(
       "{variable} ({date}) is after {surv_ref_date_name} ({surv_ref_date})"
+    )
+}
+
+ocv_pl23 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "surv_last_fu_date",
+    "surv_death_date",
+    "surv_date_reviewed",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    dplyr::mutate(
+      surv_ref_date = dplyr::if_else(
+        !is.na(.data$surv_death_date),
+        .data$surv_death_date,
+        .data$surv_last_fu_date
+      ),
+      surv_ref_date_name = dplyr::if_else(
+        !is.na(.data$surv_death_date),
+        "surv_death_date",
+        "surv_last_fu_date"
+      )
+    ) |>
+    dplyr::mutate(
+      .ok = .data$surv_date_reviewed >= .data$surv_ref_date |
+        is.na(.data$surv_date_reviewed) |
+        is.na(.data$surv_ref_date)
+    ) |>
+    filter_issues(
+      "{surv_ref_date_name} ({surv_ref_date}) is after surv_date_reviewed ({surv_date_reviewed})"
+    )
+}
+
+ocv_pl24 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "mol_claudine18_val",
+    "mol_claudine18_cutoff",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    dplyr::mutate(
+      .ok = (.data$mol_claudine18_val >= 75 &
+        .data$mol_claudine18_cutoff == ">= 75") |
+        (.data$mol_claudine18_val < 75 &
+          .data$mol_claudine18_cutoff == "<75") |
+        is.na(.data$mol_claudine18_val) |
+        is.na(.data$mol_claudine18_cutoff)
+    ) |>
+    filter_issues(
+      "mol_claudine18_val ({mol_claudine18_val}) and mol_claudine18_cutoff ({mol_claudine18_cutoff}) do not match"
     )
 }

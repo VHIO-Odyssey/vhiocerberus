@@ -21,3 +21,5 @@ ocv_pl19;plausibility;(tum_m_at_diagnosis = M1 AND tum_tnm_group = IVB) OR (tum_
 ocv_pl20;plausibility;(tum_sync_met = Yes AND tum_m_at_diagnosis = M1 AND tum_tnm_stage= IV) OR (tum_sync_met != Yes AND tum_m_at_diagnosis != M1 AND tum_tnm_stage != IV);;0;1;0;0;0;0;0;0
 ocv_pl21;plausibility;pd_date is before or equal to pd_distant_date;;1;0;0;0;0;0;0;0
 ocv_pl22;plausibility;surv_last_fu_date OR surv_death_date are equal or after all the varible dates (from instruments !Survival);;1;1;1;1;1;1;1;1
+ocv_pl23;plausibility;surv_date_reviewed is equal or after: surv_last_fu_date OR surv_death_date ;;1;1;1;1;1;1;1;1
+ocv_pl24;plausibility;(mol_claudine18_val >= 75 AND mol_claudine18_cutoff  >= 75) OR ((mol_claudine18_val < 75 AND mol_claudine18_cutoff  < 75) );;0;0;1;0;0;0;0;0
