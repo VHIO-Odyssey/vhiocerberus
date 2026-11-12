@@ -592,3 +592,121 @@ ocv_pl24 <- function(project, patients, connection) {
       "mol_claudine18_val ({mol_claudine18_val}) and mol_claudine18_cutoff ({mol_claudine18_cutoff}) do not match"
     )
 }
+
+ocv_pl25 <- function(project, patients, connection) {
+  pd_stat_no <-
+    oncoclinical_select(
+      "pd_stat",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter(.data$pd_stat == "No")
+
+  met_settings <-
+    oncoclinical_select(
+      "ttm_setting",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter(.data$ttm_setting == "Metastatic or Palliative") |>
+    dplyr::summarise(
+      repeating_instance = stringr::str_c(
+        .data$repeating_instance,
+        collapse = ", "
+      ),
+      .by = c("dem_sap", "event_arm", "form")
+    )
+
+  dplyr::left_join(
+    pd_stat_no,
+    met_settings,
+    by = c("dem_sap", "event_arm"),
+    suffix = c("_1", "_2")
+  ) |>
+    dplyr::mutate(
+      .ok = is.na(.data$form_2)
+    ) |>
+    filter_issues(
+      "pd_stat = 'No' but the patients have 'Metastatic or Palliative' setting(s)"
+    )
+}
+
+ocv_pl26 <- function(project, patients, connection) {
+  pd_stat_no <-
+    oncoclinical_select(
+      "pd_stat",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter(.data$pd_stat == "No")
+
+  no_m1 <-
+    oncoclinical_select(
+      "tum_m_at_diagnosis",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter(.data$tum_m_at_diagnosis != "M1")
+
+  pd_m1_no <-
+    dplyr::inner_join(
+      pd_stat_no,
+      no_m1,
+      by = c("dem_sap", "event_arm"),
+      suffix = c("_1", "_2")
+    )
+
+  met_settings <-
+    oncoclinical_select(
+      "ttm_setting",
+      .project = project,
+      .patients = patients,
+      .connection = connection
+    ) |>
+    dplyr::filter(.data$ttm_setting == "Metastatic or Palliative") |>
+    dplyr::summarise(
+      repeating_instance = stringr::str_c(
+        .data$repeating_instance,
+        collapse = ", "
+      ),
+      .by = c("dem_sap", "event_arm", "form")
+    ) |>
+    dplyr::rename(
+      form_3 = "form",
+      repeating_instance_3 = "repeating_instance"
+    )
+
+  dplyr::left_join(
+    pd_m1_no,
+    met_settings,
+    by = c("dem_sap", "event_arm")
+  ) |>
+    dplyr::mutate(
+      .ok = is.na(.data$form_3)
+    ) |>
+    filter_issues(
+      "pd_stat = 'No' and tum_m_at_diagnosis != 'M1' but the patients have 'Metastatic or Palliative' setting(s)"
+    )
+}
+
+ocv_pl27 <- function(project, patients, connection) {
+  oncoclinical_select(
+    "surv_last_fu_date",
+    "surv_death_date",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    dplyr::mutate(
+      .ok = .data$surv_death_date >= .data$surv_last_fu_date |
+        is.na(.data$surv_last_fu_date) |
+        is.na(.data$surv_death_date)
+    ) |>
+    filter_issues(
+      "surv_death_date ({surv_death_date}) is before surv_last_fu_date ({surv_last_fu_date})"
+    )
+}
