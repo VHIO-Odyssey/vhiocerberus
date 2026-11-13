@@ -31,9 +31,17 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
 
   connection <- connect_to_vhio_database(user, password, "OncoClinical")
   on.exit(DBI::dbDisconnect(connection), add = TRUE)
-
+  oncopharma <- connect_to_vhio_database(user, password, "OncoPharma")
+  on.exit(DBI::dbDisconnect(oncopharma), add = TRUE)
   # patients = NULL: sin filtro de pacientes, se verifican todos los del proyecto
   warn_patients_not_in_project(patients, project, connection)
+
+  context <- list(
+    project = project,
+    patients = patients,
+    connection = connection,
+    oncopharma = oncopharma
+  )
 
   verifications <-
     oncoclinical_verifications |>
@@ -42,18 +50,11 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
     dplyr::mutate(
       issues = purrr::map(
         .data$verif_id,
-        \(verif_id, project, patients, connection) {
+        \(verif_id, context) {
           cli::cli_inform("Running {.val {verif_id}} verification...")
 
           result <- try(
-            do.call(
-              verif_id,
-              list(
-                project = project,
-                patients = patients,
-                connection = connection
-              )
-            ),
+            run_verification(verif_id, context),
             silent = TRUE
           )
 
@@ -71,9 +72,7 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
             ) |>
             drop_zero_id_columns()
         },
-        project,
-        patients,
-        connection
+        context
       )
     ) |>
     dplyr::mutate(
@@ -94,6 +93,33 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
   }
   verifications
 }
+
+#' @title Run a Single Verification
+#' @description
+#'   Calls the verification `verif_id` passing only the arguments from
+#'   `context` that the function declares. If the function has `...`, it
+#'   receives the whole `context`.
+#'
+#' @param verif_id Name of the verification function (e.g. `"ocv_pl1"`).
+#' @param context Named list with everything available to verifications
+#'   (`project`, `patients`, `connection`, auxiliary connections...).
+#'
+#' @return The result of the verification.
+#' @keywords internal
+#' @noRd
+run_verification <- function(verif_id, context) {
+  fn <- get(verif_id, mode = "function")
+  declared <- rlang::fn_fmls_names(fn)
+
+  args <- if ("..." %in% declared) {
+    context
+  } else {
+    context[intersect(names(context), declared)]
+  }
+
+  do.call(verif_id, args)
+}
+
 
 #' @title Project Names Available in the Verifications
 #' @description
