@@ -9,13 +9,13 @@ ocv_cm1 <- function(project, patients, connection, oncopharma) {
   or_ttm <-
     dplyr::tbl(oncopharma, "Treatments_Oral") |>
     dplyr::select("sap", "ttm_date") |>
-    dplyr::filter(.data$sap %in% last_fu$dem_sap) |>
+    dplyr::filter(.data$sap %in% last_ttm_enddate$dem_sap) |>
     dplyr::collect()
 
   iv_ttm <-
     dplyr::tbl(oncopharma, "Treatments_Intravenous") |>
     dplyr::select("sap", "ttm_administration_date") |>
-    dplyr::filter(.data$sap %in% last_fu$dem_sap) |>
+    dplyr::filter(.data$sap %in% last_ttm_enddate$dem_sap) |>
     dplyr::collect()
 
   last_op_ttm <-

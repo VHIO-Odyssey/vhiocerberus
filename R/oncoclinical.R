@@ -46,12 +46,28 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
   verifications <-
     oncoclinical_verifications |>
     dplyr::filter(.data[[project]] == 1) |>
-    dplyr::select("verif_id", "type", "verification", "details") |>
+    dplyr::select("verif_id", "type", "verification", "details")
+
+  ids <- verifications$verif_id
+  n_verifications <- length(ids)
+
+  progress_id <- cli::cli_progress_bar(
+    format = "{cli::pb_bar} {cli::pb_current}/{cli::pb_total} | {status}",
+    total = n_verifications
+  )
+
+  verifications <-
+    verifications |>
     dplyr::mutate(
-      issues = purrr::map(
+      issues = purrr::imap(
         .data$verif_id,
-        \(verif_id, context) {
-          cli::cli_inform("Running {.val {verif_id}} verification...")
+        \(verif_id, i, context) {
+          status <- paste0(verif_id, " | pending: ", n_verifications - i)
+          cli::cli_progress_update(
+            id = progress_id,
+            status = status,
+            set = i - 1
+          )
 
           result <- try(
             run_verification(verif_id, context),
@@ -59,22 +75,21 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
           )
 
           if (inherits(result, "try-error")) {
-            cli::cli_alert_danger(
-              "{.val {verif_id}} failed: {conditionMessage(attr(result, 'condition'))}"
-            )
             return(NULL)
           }
 
-          cli::cli_alert_success("{.val {verif_id}} verification completed")
           result |>
-            dplyr::mutate(
-              dem_sap = as.character(.data$dem_sap)
-            ) |>
+            dplyr::mutate(dem_sap = as.character(.data$dem_sap)) |>
             drop_zero_id_columns()
         },
         context
       )
-    ) |>
+    )
+
+  cli::cli_progress_done(id = progress_id)
+
+  verifications <-
+    verifications |>
     dplyr::mutate(
       # NULL means the verification failed to run
       n_issues = purrr::map_int(
@@ -83,6 +98,20 @@ verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
       ),
       .before = "issues"
     )
+  failed <- verifications$verif_id[is.na(verifications$n_issues)]
+  n_failed <- length(failed)
+  n_succeeded <- n_verifications - n_failed
+
+  if (n_failed == 0) {
+    cli::cli_alert_success(
+      "{n_succeeded}/{n_verifications} verification{?s} completed."
+    )
+  } else {
+    cli::cli_warn(c(
+      "{n_succeeded} verification{?s} completed, {n_failed} failed.",
+      "i" = "Failed: {.val {failed}}."
+    ))
+  }
 
   attr(verifications, "project") <- project
   attr(verifications, "verification_datetime") <- Sys.time()
