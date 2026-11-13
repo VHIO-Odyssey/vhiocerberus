@@ -25,7 +25,8 @@
 #'   `NULL` if all were verified) are used by
 #'   `report_oncoclinical_verifications()`.
 #'
-#' @seealso [report_oncoclinical_verifications()]
+#' @seealso [report_oncoclinical_verifications()], [oncoclinical_projects()]
+#' @export
 verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
   project <- rlang::arg_match0(project, oncoclinical_projects())
 
@@ -156,7 +157,11 @@ run_verification <- function(verif_id, context) {
 #'   projects for which verifications can be run.
 #'
 #' @return A character vector of project names.
-#' @keywords internal
+#'
+#' @seealso [verify_oncoclinical_data()]
+#' @export
+#' @examples
+#' oncoclinical_projects()
 oncoclinical_projects <- function() {
   setdiff(
     names(oncoclinical_verifications),

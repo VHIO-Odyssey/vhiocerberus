@@ -13,4 +13,9 @@ A character vector of project names.
 Names of the project columns of \code{oncoclinical_verifications}, i.e. the
 projects for which verifications can be run.
 }
-\keyword{internal}
+\examples{
+oncoclinical_projects()
+}
+\seealso{
+\code{\link[=verify_oncoclinical_data]{verify_oncoclinical_data()}}
+}

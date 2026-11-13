@@ -37,5 +37,5 @@ by patient, so a patient present in several projects only contributes the
 records of \code{project}.
 }
 \seealso{
-\code{\link[=report_oncoclinical_verifications]{report_oncoclinical_verifications()}}
+\code{\link[=report_oncoclinical_verifications]{report_oncoclinical_verifications()}}, \code{\link[=oncoclinical_projects]{oncoclinical_projects()}}
 }
