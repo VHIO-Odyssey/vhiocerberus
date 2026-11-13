@@ -26,3 +26,4 @@ ocv_pl24;plausibility;(mol_claudine18_val >= 75 and mol_claudine18_cutoff = '>= 
 ocv_pl25;plausibility;pd_stat = 'No' and all ttm_setting != 'Metastatic or Palliative';;0;1;0;1;0;0;0;0
 ocv_pl26;plausibility;pd_stat = 'No' and tum_m_at_diagnosis != 'M1' and all ttm_setting != 'Metastatic or Palliative';;1;0;0;0;0;0;0;0
 ocv_pl27;plausibility;surv_death_date equal or after surv_last_fu_date;;1;1;1;1;1;1;1;1
+ocv_pl28;plausibility;pd_num_sites equals to the number of selected items in pd_loc;;0;1;0;0;0;0;0;0

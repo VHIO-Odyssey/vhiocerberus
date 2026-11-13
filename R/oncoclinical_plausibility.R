@@ -737,3 +737,23 @@ ocv_pl27 <- function(project, patients, connection) {
       "surv_death_date ({surv_death_date}) is before surv_last_fu_date ({surv_last_fu_date})"
     )
 }
+
+ocv_pl28 <- function(project, patients, connection) {
+  #pd_num_sites equals to the number of selected items in pd_loc
+  oncoclinical_select(
+    "pd_num_sites",
+    "pd_loc",
+    .project = project,
+    .patients = patients,
+    .connection = connection
+  ) |>
+    dplyr::mutate(
+      n_pd_loc = stringr::str_count(.data$pd_loc, " // ") + 1,
+      .ok = .data$pd_num_sites == .data$n_pd_loc |
+        is.na(.data$pd_num_sites) |
+        is.na(.data$n_pd_loc)
+    ) |>
+    filter_issues(
+      "pd_num_sites ({pd_num_sites}) does not match the number of selected items in pd_loc ({n_pd_loc}: {pd_loc})"
+    )
+}
