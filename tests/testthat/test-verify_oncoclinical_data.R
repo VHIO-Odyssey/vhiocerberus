@@ -125,11 +125,35 @@ test_that("an unknown project is an error before connecting", {
 })
 
 test_that("a failing verification gives NULL issues and NA n_issues", {
-  res <- run_verify(
-    "breast",
-    stub = function(project, patients, connection) stop("boom")
+  expect_warning(
+    res <- run_verify(
+      "breast",
+      stub = function(project, patients, connection) stop("boom")
+    ),
+    "0 verifications completed"
   )
 
   expect_true(all(is.na(res$out$n_issues)))
   expect_true(all(purrr::map_lgl(res$out$issues, is.null)))
+})
+
+test_that("warns with the counts and ids of the failed verifications", {
+  n_enabled <- sum(oncoclinical_verifications$breast == 1)
+  calls <- 0
+  # Only the first verification fails
+  stub <- function(project, patients, connection) {
+    calls <<- calls + 1
+    if (calls == 1) {
+      stop("boom")
+    }
+    tibble::tibble(dem_sap = 1, event_arm = 0, issue = "x")
+  }
+
+  expect_warning(
+    res <- run_verify("breast", stub = stub),
+    paste0(n_enabled - 1, " verifications? completed, 1 failed")
+  )
+
+  failed_id <- res$out$verif_id[is.na(res$out$n_issues)]
+  expect_equal(failed_id, res$out$verif_id[1])
 })

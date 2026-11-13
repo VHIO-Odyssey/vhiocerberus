@@ -25,7 +25,7 @@
 #'   `NULL` if all were verified) are used by
 #'   `report_oncoclinical_verifications()`.
 #'
-#' @seealso `report_oncoclinical_verifications()`
+#' @seealso [report_oncoclinical_verifications()]
 verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
   project <- rlang::arg_match0(project, oncoclinical_projects())
 
@@ -284,6 +284,35 @@ issues_by_sap <- function(verifications) {
     )
 }
 
+#' @title Write the OncoClinical Verifications to an Excel Report
+#' @description
+#'   Writes the result of [verify_oncoclinical_data()] to an Excel workbook.
+#'   The file is named
+#'   `<project>_oncoclinical_verifications[_subset]_<YYYYmmdd_HHMM>.xlsx`, where
+#'   the `_subset` suffix is only added if a subset of patients was verified.
+#'
+#'   The workbook contains the following sheets:
+#'   * `project_info`: project, patients verified and verification date-time.
+#'   * `verifications_summary`: one row per verification with its number of
+#'     issues. Each non-zero count links to the sheet of that verification.
+#'   * `all_issues`: all the issues of all the verifications, one row per issue
+#'     and ordered by patient. Omitted if there are no issues.
+#'   * One sheet per verification with issues, named after its `verif_id`, with
+#'     a link back to the summary.
+#'
+#' @param oncoclinical_verifications The tibble returned by
+#'   [verify_oncoclinical_data()]. Its attributes `project`,
+#'   `verification_datetime` and `patients` are used to name the file and fill
+#'   the `project_info` sheet.
+#' @param folder A single string with a folder, relative to the project root
+#'   (see [here::here()]), where the report is saved. `NULL` (the default)
+#'   saves it in the project root. The folder must already exist.
+#'
+#' @return The path of the report, invisibly. An existing file with the same
+#'   name is overwritten.
+#'
+#' @seealso [verify_oncoclinical_data()]
+#' @export
 report_oncoclinical_verifications <- function(
   oncoclinical_verifications,
   folder = NULL
