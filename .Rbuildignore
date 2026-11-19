@@ -5,3 +5,5 @@
 ^data-raw$
 ^AGENTS\.md$
 ^archive$
+^R/R_files_structure\.md$
+^\.posit$

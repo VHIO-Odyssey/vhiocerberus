@@ -90,22 +90,6 @@ connect_to_vhio_database <- function(
   connection
 }
 
-# min and max functions that return NA if all values are NA.
-safe_min <- function(x) {
-  if (all(is.na(x))) {
-    x[1]
-  } else {
-    min(x, na.rm = TRUE)
-  }
-}
-safe_max <- function(x) {
-  if (all(is.na(x))) {
-    x[1]
-  } else {
-    max(x, na.rm = TRUE)
-  }
-}
-
 #' @title Select Columns from an OncoClinical Form Table
 #' @description
 #'   Retrieves a form table from the OncoClinical database and keeps a
@@ -778,5 +762,5 @@ pivot_dates <- function(data) {
     )
   ) |>
     purrr::reduce(dplyr::bind_rows) |>
-    dplyr::filter_out(is.na(date))
+    dplyr::filter_out(is.na(.data$date))
 }
