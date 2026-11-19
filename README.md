@@ -32,6 +32,23 @@ report that data curators can review.
 remotes::install_github("<github-user>/vhiocerberus")
 ```
 
+## Configuration
+
+The package contains no credentials or server addresses. The user, password
+and address of the SQL Server are read from these environment variables, which
+you can define in your `~/.Renviron` (for example with
+`usethis::edit_r_environ()`) and then restart R:
+
+```
+VHIO_SQL_SERVER_USER=<your_user>
+VHIO_SQL_SERVER_PASSWORD=<your_password>
+VHIO_SQL_SERVER_IP=<server_address>
+```
+
+Alternatively, pass `user`, `password` and `server` to
+`verify_oncoclinical_data()`. An explicit argument takes precedence over the
+environment variable. Avoid typing the password in scripts.
+
 ## Usage
 
 The workflow has two steps: run the verifications of a project and write the
@@ -43,12 +60,8 @@ library(vhiocerberus)
 # Projects for which verifications are available
 oncoclinical_projects()
 
-# Run the verifications of a project
-verifications <- verify_oncoclinical_data(
-  user = "my_user",
-  password = rstudioapi::askForPassword("Database password"),
-  project = "breast"
-)
+# Run the verifications of a project (credentials from ~/.Renviron)
+verifications <- verify_oncoclinical_data(project = "breast")
 
 # Write the Excel report (in the project root, or in `folder`)
 report_oncoclinical_verifications(verifications, folder = "reports")
@@ -60,8 +73,6 @@ report file name gets a `_subset` suffix:
 
 ``` r
 verify_oncoclinical_data(
-  user = "my_user",
-  password = rstudioapi::askForPassword("Database password"),
   project = "breast",
   patients = c("<id_1>", "<id_2>")
 )

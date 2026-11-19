@@ -9,12 +9,16 @@
 #'   by patient, so a patient present in several projects only contributes the
 #'   records of `project`.
 #'
-#' @param user,password Credentials used to connect to the database.
 #' @param project A single string with the project name. It must be one of the
 #'   project columns of `oncoclinical_verifications`.
 #' @param patients A vector of patient identifiers (`dem_sap`) to verify, or
 #'   `NULL` (the default) to verify all the patients of the project. Patients
 #'   without a record in `project` are ignored with a warning.
+#' @param user,password,server Credentials and address of the SQL Server. If
+#'   `NULL` (the default), they are read from the environment variables
+#'   `VHIO_SQL_SERVER_USER`, `VHIO_SQL_SERVER_PASSWORD` and
+#'   `VHIO_SQL_SERVER_IP`, which you can define in your `~/.Renviron`. Avoid
+#'   typing the password in scripts.
 #'
 #' @return A tibble with one row per verification and the columns `verif_id`,
 #'   `type`, `verification`, `details`, `n_issues` (`NA` if the verification
@@ -27,12 +31,29 @@
 #'
 #' @seealso [report_oncoclinical_verifications()], [oncoclinical_projects()]
 #' @export
-verify_oncoclinical_data <- function(user, password, project, patients = NULL) {
+verify_oncoclinical_data <- function(
+  project,
+  patients = NULL,
+  user = NULL,
+  password = NULL,
+  server = NULL
+) {
   project <- rlang::arg_match0(project, oncoclinical_projects())
+  credentials <- vhio_credentials(user, password, server)
 
-  connection <- connect_to_vhio_database(user, password, "OncoClinical")
+  connection <- connect_to_vhio_database(
+    credentials$server,
+    credentials$user,
+    credentials$password,
+    "OncoClinical"
+  )
   on.exit(DBI::dbDisconnect(connection), add = TRUE)
-  oncopharma <- connect_to_vhio_database(user, password, "OncoPharma")
+  oncopharma <- connect_to_vhio_database(
+    credentials$server,
+    credentials$user,
+    credentials$password,
+    "OncoPharma"
+  )
   on.exit(DBI::dbDisconnect(oncopharma), add = TRUE)
   # patients = NULL: sin filtro de pacientes, se verifican todos los del proyecto
   warn_patients_not_in_project(patients, project, connection)

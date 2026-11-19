@@ -34,10 +34,11 @@ run_verify <- function(project = "breast", patients = NULL, stub = NULL) {
       testthat::with_mocked_bindings(
         testthat::with_mocked_bindings(
           verify_oncoclinical_data(
-            "user",
-            "password",
             project = project,
-            patients = patients
+            patients = patients,
+            user = "user",
+            password = "password",
+            server = "server"
           ),
           !!!stubs
         ),
@@ -117,7 +118,7 @@ test_that("stores the unique requested patients as an attribute", {
 test_that("an unknown project is an error before connecting", {
   testthat::with_mocked_bindings(
     expect_error(
-      verify_oncoclinical_data("user", "password", project = "nope"),
+      verify_oncoclinical_data(project = "nope"),
       "project"
     ),
     connect_to_vhio_database = function(...) stop("should not connect")

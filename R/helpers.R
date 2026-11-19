@@ -1,19 +1,52 @@
-# Function to connect to the VHIO database using ODBC
-# usert: Username for the database connection
-# password: Password for the database connection
+# Resolve a setting: explicit value > environment variable > default.
+# Aborts with an actionable message if none is available.
+resolve_setting <- function(value, env_var, default = NULL) {
+  if (!is.null(value)) {
+    return(value)
+  }
+  env_value <- Sys.getenv(env_var, unset = "")
+  if (nzchar(env_value)) {
+    return(env_value)
+  }
+  if (!is.null(default)) {
+    return(default)
+  }
+  cli::cli_abort(c(
+    "x" = "Missing setting {.envvar {env_var}}.",
+    "i" = "Define it in your {.file ~/.Renviron} and restart R."
+  ))
+}
+
+# Port of the VHIO SQL Server (standard SQL Server port, not a secret)
+vhio_sql_server_port <- 1433L
+
+# Connection settings for the VHIO data lake: explicit argument >
+# environment variable (defined in ~/.Renviron)
+vhio_credentials <- function(user = NULL, password = NULL, server = NULL) {
+  list(
+    user = resolve_setting(user, "VHIO_SQL_SERVER_USER"),
+    password = resolve_setting(password, "VHIO_SQL_SERVER_PASSWORD"),
+    server = resolve_setting(server, "VHIO_SQL_SERVER_IP")
+  )
+}
+
+# Function to connect to a VHIO database using ODBC
+# server: Address of the SQL Server
+# user, password: Credentials for the database connection
 # database_name: Name of the database to connect to (e.g., "OncoClinical",
 # "OncoPharma", "Prescreening_NEW")
 connect_to_vhio_database <- function(
+  server,
   user,
   password,
   database_name
 ) {
   vhio_reach <- tryCatch(
     {
-      # Try to establish a socket connection to the Server
+      # Try to establish a socket connection to the server
       con <- socketConnection(
-        host = "172.27.254.6",
-        port = 1433,
+        host = server,
+        port = vhio_sql_server_port,
         blocking = TRUE,
         timeout = 1
       )
@@ -22,13 +55,8 @@ connect_to_vhio_database <- function(
       close(con)
       TRUE
     },
-    error = function(e) {
-      # If an error occurs (like a timeout), return FALSE
-      FALSE
-    },
-    warning = function(w) {
-      FALSE
-    }
+    error = function(e) FALSE,
+    warning = function(w) FALSE
   )
 
   if (!vhio_reach) {
@@ -39,28 +67,25 @@ connect_to_vhio_database <- function(
   }
 
   connection <- tryCatch(
-    {
-      odbc::dbConnect(
-        odbc::odbc(),
-        Driver = "SQL Server",
-        Server = "172.27.254.6",
-        Database = database_name,
-        UID = user,
-        PWD = password,
-        Port = 1433
-      )
-    },
+    odbc::dbConnect(
+      odbc::odbc(),
+      Driver = "SQL Server",
+      Server = server,
+      Database = database_name,
+      UID = user,
+      PWD = password,
+      Port = vhio_sql_server_port
+    ),
     error = function(e) {
-      FALSE
+      cli::cli_abort(
+        c(
+          "x" = "Failed to establish a connection to {.val {database_name}}.",
+          "i" = "Please check your credentials and try again."
+        ),
+        parent = e
+      )
     }
   )
-
-  if (isFALSE(connection)) {
-    cli::cli_abort(c(
-      "x" = "Failed to establish a connection to {.val {database_name}}.",
-      "i" = "Please check your credentials and try again."
-    ))
-  }
 
   connection
 }

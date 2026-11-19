@@ -14,6 +14,13 @@ OncoClinical database.
   It returns a tibble with one row per verification, its number of issues and
   the issues found.
 
+  The package code contains no credentials or server address. The arguments
+  `user`, `password` and `server` default to `NULL`, in which case they are read
+  from the environment variables `VHIO_SQL_SERVER_USER`,
+  `VHIO_SQL_SERVER_PASSWORD` and `VHIO_SQL_SERVER_IP` (e.g. defined in
+  `~/.Renviron`). An explicit argument takes precedence. A missing setting
+  aborts before any connection is opened.
+
 * `report_oncoclinical_verifications()` writes the result of
   `verify_oncoclinical_data()` to an Excel workbook, with a project
   information sheet, a summary of the verifications, a sheet with all the issues

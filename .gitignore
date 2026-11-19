@@ -4,3 +4,5 @@ sandbox/
 /.quarto/
 **/*.quarto_ipynb
 AGENTS.md
+.Renviron
+.posit/

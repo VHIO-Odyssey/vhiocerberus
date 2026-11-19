@@ -4,17 +4,27 @@
 \alias{verify_oncoclinical_data}
 \title{Run the OncoClinical Verifications of a Project}
 \usage{
-verify_oncoclinical_data(user, password, project, patients = NULL)
+verify_oncoclinical_data(
+  project,
+  patients = NULL,
+  user = NULL,
+  password = NULL,
+  server = NULL
+)
 }
 \arguments{
-\item{user, password}{Credentials used to connect to the database.}
-
 \item{project}{A single string with the project name. It must be one of the
 project columns of \code{oncoclinical_verifications}.}
 
 \item{patients}{A vector of patient identifiers (\code{dem_sap}) to verify, or
 \code{NULL} (the default) to verify all the patients of the project. Patients
 without a record in \code{project} are ignored with a warning.}
+
+\item{user, password, server}{Credentials and address of the SQL Server. If
+\code{NULL} (the default), they are read from the environment variables
+\code{VHIO_SQL_SERVER_USER}, \code{VHIO_SQL_SERVER_PASSWORD} and
+\code{VHIO_SQL_SERVER_IP}, which you can define in your \verb{~/.Renviron}. Avoid
+typing the password in scripts.}
 }
 \value{
 A tibble with one row per verification and the columns \code{verif_id},
