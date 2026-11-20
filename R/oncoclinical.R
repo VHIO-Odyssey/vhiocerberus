@@ -500,9 +500,31 @@ report_oncoclinical_verifications <- function(
 plot_oncoclinical_treatments <- function(
   project,
   patient,
-  oncoclinical_connection,
-  oncopharma_connection
+  user = NULL,
+  password = NULL,
+  server = NULL
 ) {
+  project <- rlang::arg_match0(project, oncoclinical_projects())
+  rlang::check_required(patient)
+  if (length(patient) != 1) {
+    cli::cli_abort("{.arg patient} must be a single patient identifier.")
+  }
+  credentials <- vhio_credentials(user, password, server)
+
+  oncoclinical_connection <- connect_to_vhio_database(
+    credentials$server,
+    credentials$user,
+    credentials$password,
+    "OncoClinical"
+  )
+  on.exit(DBI::dbDisconnect(oncoclinical_connection), add = TRUE)
+  oncopharma_connection <- connect_to_vhio_database(
+    credentials$server,
+    credentials$user,
+    credentials$password,
+    "OncoPharma"
+  )
+  on.exit(DBI::dbDisconnect(oncopharma_connection), add = TRUE)
   ttms_pt <- extract_ordered_treatment(
     project,
     patient,
@@ -513,6 +535,12 @@ plot_oncoclinical_treatments <- function(
       order = forcats::fct_rev(factor(order))
     ) |>
     dplyr::arrange(order)
+
+  if (nrow(ttms_pt) == 0) {
+    cli::cli_abort(
+      "No treatments found for patient {.val {patient}} in project {.val {project}}."
+    )
+  }
 
   or_ttm <-
     dplyr::tbl(oncopharma_connection, "Treatments_Oral") |>
@@ -535,6 +563,12 @@ plot_oncoclinical_treatments <- function(
       range()
   } else {
     oncopharma_range <- c(lubridate::NA_Date_, lubridate::NA_Date_)
+  }
+
+  if (length(oncopharma_dates) == 0) {
+    subtitle <- "No OncoPharma treatments found for this patient."
+  } else {
+    subtitle <- "Gray area represents OncoPharma range."
   }
 
   plot_range <-
@@ -599,7 +633,12 @@ plot_oncoclinical_treatments <- function(
     ) +
     ggplot2::scale_y_discrete(labels = ttms_pt$setting_label) +
     ggplot2::scale_x_date(limits = plot_range, date_labels = "%b %Y") +
-    ggplot2::labs(caption = "Gray area represents OncoPharmarange") +
+    ggplot2::labs(
+      title = patient,
+      subtitle = subtitle,
+      x = NULL,
+      y = NULL
+    ) +
     ggplot2::theme_minimal() +
     ggplot2::theme(
       legend.position = "none"
