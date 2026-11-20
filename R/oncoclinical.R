@@ -261,6 +261,42 @@ warn_patients_not_in_project <- function(patients, project, connection) {
   invisible(not_found)
 }
 
+resolve_patient_project <- function(patient, project, connection) {
+  patient_projects <-
+    select_oncoclinical_tbl(
+      "demographics",
+      "dem_sap",
+      .connection = connection
+    ) |>
+    filter_patients(patient) |>
+    dplyr::distinct(.data$project) |>
+    dplyr::pull("project")
+
+  if (length(patient_projects) == 0) {
+    cli::cli_abort("Patient {.val {patient}} not found in any project.")
+  }
+
+  if (is.null(project)) {
+    if (length(patient_projects) > 1) {
+      cli::cli_abort(c(
+        "Patient {.val {patient}} is in {length(patient_projects)} projects.",
+        "x" = "{.val {patient_projects}}",
+        "i" = "Use {.arg project} to choose one."
+      ))
+    }
+    return(patient_projects)
+  }
+
+  if (!project %in% patient_projects) {
+    cli::cli_abort(c(
+      "Patient {.val {patient}} not found in project {.val {project}}.",
+      "i" = "Found in: {.val {patient_projects}}."
+    ))
+  }
+
+  project
+}
+
 #' @title Issues of All Verifications, Ordered by Patient
 #' @description
 #'   Stacks the issues of every verification that found any into a single
@@ -498,16 +534,18 @@ report_oncoclinical_verifications <- function(
 
 
 plot_oncoclinical_treatments <- function(
-  project,
   patient,
+  project = NULL,
   user = NULL,
   password = NULL,
   server = NULL
 ) {
-  project <- rlang::arg_match0(project, oncoclinical_projects())
   rlang::check_required(patient)
   if (length(patient) != 1) {
     cli::cli_abort("{.arg patient} must be a single patient identifier.")
+  }
+  if (!is.null(project)) {
+    project <- rlang::arg_match0(project, oncoclinical_projects())
   }
   credentials <- vhio_credentials(user, password, server)
 
@@ -525,6 +563,13 @@ plot_oncoclinical_treatments <- function(
     "OncoPharma"
   )
   on.exit(DBI::dbDisconnect(oncopharma_connection), add = TRUE)
+
+  project <- resolve_patient_project(
+    patient,
+    project,
+    oncoclinical_connection
+  )
+
   ttms_pt <- extract_ordered_treatment(
     project,
     patient,
@@ -538,7 +583,7 @@ plot_oncoclinical_treatments <- function(
 
   if (nrow(ttms_pt) == 0) {
     cli::cli_abort(
-      "No treatments found for patient {.val {patient}} in project {.val {project}}."
+      "Patient {.val {patient}} has no treatments in project {.val {project}}."
     )
   }
 
@@ -634,7 +679,7 @@ plot_oncoclinical_treatments <- function(
     ggplot2::scale_y_discrete(labels = ttms_pt$setting_label) +
     ggplot2::scale_x_date(limits = plot_range, date_labels = "%b %Y") +
     ggplot2::labs(
-      title = patient,
+      title = stringr::str_c("Patient ", patient, " from project ", project),
       subtitle = subtitle,
       x = NULL,
       y = NULL
