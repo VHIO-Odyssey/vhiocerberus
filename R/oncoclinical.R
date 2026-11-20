@@ -495,3 +495,113 @@ report_oncoclinical_verifications <- function(
   openxlsx::saveWorkbook(workbook, path, overwrite = TRUE)
   invisible(path)
 }
+
+
+plot_oncoclinical_treatments <- function(
+  project,
+  patient,
+  oncoclinical_connection,
+  oncopharma_connection
+) {
+  ttms_pt <- extract_ordered_treatment(
+    project,
+    patient,
+    oncoclinical_connection
+  ) |>
+    dplyr::mutate(
+      dates_ok = ifelse(ttm_startdate <= ttm_enddate, "1", "2"),
+      order = forcats::fct_rev(factor(order))
+    ) |>
+    dplyr::arrange(order)
+
+  or_ttm <-
+    dplyr::tbl(oncopharma_connection, "Treatments_Oral") |>
+    dplyr::select("sap", "ttm_date") |>
+    dplyr::filter(.data$sap %in% patient) |>
+    dplyr::collect()
+
+  iv_ttm <-
+    dplyr::tbl(oncopharma_connection, "Treatments_Intravenous") |>
+    dplyr::select("sap", ttm_date = "ttm_administration_date") |>
+    dplyr::filter(.data$sap %in% patient) |>
+    dplyr::collect()
+
+  oncopharma_dates <-
+    dplyr::bind_rows(or_ttm, iv_ttm) |>
+    dplyr::pull(ttm_date)
+
+  if (length(oncopharma_dates) > 0) {
+    oncopharma_range <- lubridate::ymd(oncopharma_dates) |>
+      range()
+  } else {
+    oncopharma_range <- c(lubridate::NA_Date_, lubridate::NA_Date_)
+  }
+
+  plot_range <-
+    c(
+      ttms_pt$ttm_startdate,
+      ttms_pt$ttm_enddate,
+      oncopharma_range
+    ) |>
+    range(na.rm = TRUE)
+
+  arrow_start <- grid::arrow(
+    angle = 210,
+    length = grid::unit(4, "mm"),
+    type = "open"
+  )
+
+  arrow_end <- grid::arrow(
+    angle = 30,
+    length = grid::unit(4, "mm"),
+    type = "open"
+  )
+
+  ggplot2::ggplot(
+    ttms_pt,
+    ggplot2::aes(color = setting_label)
+  ) +
+    ggplot2::annotate(
+      "rect",
+      xmin = oncopharma_range[1],
+      xmax = oncopharma_range[2],
+      ymin = -Inf,
+      ymax = Inf,
+      alpha = 1 / 3,
+      fill = "gray"
+    ) +
+    ggplot2::geom_segment(
+      ggplot2::aes(
+        x = ttm_startdate,
+        xend = ttm_enddate,
+        y = order,
+        yend = order,
+        lty = dates_ok
+      )
+    ) +
+    ggplot2::geom_segment(
+      ggplot2::aes(
+        x = ttm_startdate,
+        xend = ttm_startdate,
+        y = order,
+        yend = order
+      ),
+      arrow = arrow_start
+    ) +
+    ggplot2::geom_segment(
+      ggplot2::aes(
+        x = ttm_enddate,
+        xend = ttm_enddate,
+        y = order,
+        yend = order
+      ),
+      arrow = arrow_end
+    ) +
+    ggplot2::scale_y_discrete(labels = ttms_pt$setting_label) +
+    ggplot2::scale_x_date(limits = plot_range, date_labels = "%b %Y") +
+    ggplot2::labs(caption = "Gray area represents OncoPharmarange") +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(
+      legend.position = "none"
+    )
+}
